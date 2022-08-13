@@ -60,7 +60,7 @@ app = FastAPI()
 async def read_user_me():
     return {"user_id": "usuario actual"}
 
-@app.get("/users/{user_id}"):
+@app.get("/users/{user_id}")
 async def read_user(user_id):
     return {"user_id": user_id}
 
