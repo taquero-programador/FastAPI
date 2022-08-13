@@ -109,3 +109,87 @@ async def read_files(file_path: str):
     return {"file_path": file_path}
 # al copiar la ruta puede junto a la url puede tener doble //, en amos casos funciona
 # y retorna un string de la ruta del archivo
+
+# parametros de consulta. cuando se declaran parametros que no son parte de la ruta
+# se interpretan como parametros de consulta
+from fastapi import FastAPI
+
+app = FastAPI()
+
+fake_items = [{"item_name": "Foo"},
+              {"item_name": "Bar"},
+              {"item_name": "Baz"}]
+
+@app.get("/items")
+async def read_item(skip: int = 0, limit: int = 10):
+    return fake_items[skip : skip + limit]
+# esto vendria a ser un conjunto de pares clave:valor que van depués de ?
+# ejemlo
+localhost:/items/?skip=0&limit=10
+# skip con un valor de 0 y limit con 10
+
+# parametros opcionales. declarar parametros de consulta opcional, configurando su valor como None
+from typing import Union
+# Union permite asignar varios tipos de valor a un elemento
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/ite,s/{item_id}")
+async def read_item(item_id: str, q: Union[str, None] = None):
+    if q:
+        return {"item_id": item_id, "q": q}
+    return {"item_id": item_id}
+# donde q sera opcional y por defecto sera None
+# para pasar dos valores es /items/item_name?q=valor_de_q
+# uno solo seria /items/item_name
+
+# conversion de tipo de parametro en consulta. declarra bool
+from typing import Union
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/items/{item_id}")
+async def get_item(item_id: str, q: Union[str, Union] = None, short: bool = False):
+    item = {"item_id": item_id}
+    if q:
+        item.update({"q": q})
+    if not short:
+            item.update(
+                {"descripcion": "desc"}
+            )
+    return item
+# la url completa seria http://localhost:8000/items/uno?q=dos&short=false
+
+# multiples rutas y parametros de consulta. no se declaran en orden especifico
+from typing import Union
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/users/{user_id}/items/{item_id}")
+async = def read_user_item(
+    user_id: str, item_id: str, q: Union[str, None] = None, short: bool=false):
+    item = {"item_id": item_id, "owner_id": user_id}
+    if q:
+        item.update({"q": q})
+    if not short:
+        item.update({"description": "desc"})
+    return item
+# http://localhost:8000/users/javier/items/coca?q=get&short=false
+
+# parametros de consulta requeridos
+# pasar None si no sea desea establecer un valor predeterminado
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/items/{item_id}")
+async def read_user_id(item_id: str, needy: str = None):
+    item = {"item_id": item_id}
+    if needy:
+        item.update({"needy": needy})
+    return item
+# valores predeterminados y opcionales
+

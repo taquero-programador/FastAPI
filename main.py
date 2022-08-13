@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 from fastapi import FastAPI
-
+from typing import Union
 app = FastAPI()
 
-@app.get("/files/{file_path:path}")
-async def read_file(file_path: str):
-    return {"file_path": file_path}
+@app.get("/items/{item_id}")
+async def read_user_item(item_id: str, needy: Union[str, None] = None):
+    item = {"item_id": item_id}
+    if needy:
+        item.update({"needy": needy})
+    return item
