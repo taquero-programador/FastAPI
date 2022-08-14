@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 
-from fastapi import FastAPI
 from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+class Item(BaseModel):
+    name: str
+    desc: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+
 app = FastAPI()
 
-@app.get("/items/{item_id}")
-async def read_user_item(item_id: str, needy: Union[str, None] = None):
-    item = {"item_id": item_id}
-    if needy:
-        item.update({"needy": needy})
-    return item
+@app.put("/items/{item_id}")
+async def create_item(item_id: int, item: Item):
+    return {"item_id": item_id}
+
+# https://fastapi.tiangolo.com/tutorial/body

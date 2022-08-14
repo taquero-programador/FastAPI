@@ -193,3 +193,79 @@ async def read_user_id(item_id: str, needy: str = None):
     return item
 # valores predeterminados y opcionales
 
+"""
+Cuerpo de la solicitud.
+al enviar datos del cliente al API se envian como un body request.
+la solicitud es una respuesta de datos de la API al cliente.
+"""
+# pydantic BaseModel. arriba de py3.10 no se requiere Union, en su lugar usar val: str | None = None
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import Union
+
+class Item(BaseModel):
+    name: str
+    desc: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+
+app = FastAPI()
+
+@app.post("/items/")
+async def create_item(item: Item):
+    return item
+
+# generar una solicitud con requests
+import requests
+import json
+
+url "http://localhost:8000/items/"
+payload = {
+    "name": "Musk",
+    "desc": "Tesla",
+    "price": 55555555555,
+    "tax": 0.16
+}
+headers = {"Content-Type": "application/json"}
+r = requests.post(url, data=json.dumps(payload), headers=headets)
+print(r.status_code) # 200
+print(r.text) # retorna el dict de la solicitud
+# dentro de las funciones se puede acceder a los atributos de la case
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+class Item(BaseModel):
+    name: str
+    desc: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+
+app = FastAPI()
+
+@app.post("/items/")
+async def create_item(item: Item):
+    item_dict = item.dict()
+    if item.tax:
+        price_wtax = item.price * item.tax
+        ite_dict.update({"net": price_wtax})
+    return item_dict
+
+# solicitar cuerpo + parametro de ruta al mismo tiempo
+# parametros de ruta deben obtenerse de la ruta y los parametros de funcion que son modelos pydantic
+# se obtiene del cuerpo de la solicitud
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+class Item(BaseModel):
+    name: str
+    desc: Union[str, None] = None
+    price: float
+    tax: Union[float, str] = None
+
+app = FastAPI()
+
+@app.put("/items/{item_id}")
+async def create_item(item_id: int, item: Item):
+    return {"item_id": item_id}
