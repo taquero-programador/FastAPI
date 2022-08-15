@@ -128,6 +128,7 @@ async def read_item(skip: int = 0, limit: int = 10):
 localhost:/items/?skip=0&limit=10
 # skip con un valor de 0 y limit con 10
 
+# https://fastapi.tiangolo.com/tutorial/body-multiple-params/#singular-values-in-body
 # parametros opcionales. declarar parametros de consulta opcional, configurando su valor como None
 from typing import Union
 # Union permite asignar varios tipos de valor a un elemento
@@ -230,7 +231,7 @@ headers = {"Content-Type": "application/json"}
 r = requests.post(url, data=json.dumps(payload), headers=headets)
 print(r.status_code) # 200
 print(r.text) # retorna el dict de la solicitud
-# dentro de las funciones se puede acceder a los atributos de la case
+# dentro de las funciones se puede acceder a los atributos de la clase
 from typing import Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -268,4 +269,205 @@ app = FastAPI()
 
 @app.put("/items/{item_id}")
 async def create_item(item_id: int, item: Item):
-    return {"item_id": item_id}
+    return {"item_id": item_id, **item_dict()}
+# es PUT. el id se envia sobre la url/300 y los valores se envian sobre el body requests de put
+# **item.dic() retorna los valores de body requests + el item_id en un solo dict
+# para poder manipular los datos debo de hacer un casting de str a dict
+import json
+r_dict = r.json() # de string lo pasa a un dict json
+
+# body requests + ruta + parametro de consulta. todo al mismo tiempo
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+class Item(BaseModel):
+    name: str
+    desc: Union[str, None] = None
+    price: float
+    tex; Union[float, None] = None
+
+app = FastAPI()
+
+@app.put("/items/{item_id}")
+async def create_item(
+    item_id: int, item: Item, q: Union[str, None] = None):
+    result = {"item_id": item_id, **item.dict()}
+    if q:
+        result.update({"q": q})
+    return result
+# id y q se envian en la url http://localhost:8000/items/100?q=qq y lo demas sobre el body requests
+
+# parametros de consulta y validacion. FastAPI permite info adicional y validacion para sus parametros
+from typing import Union
+from fastapi import FastAPI
+
+app = FastAPI()
+@app.get("/items/")
+async def read_items(q: Union[str, None] = None):
+    result = {"items": [{"item_id": "Foo"}, {"item_id": "bar"}]}
+    if q:
+        result.update({"q": q})
+    return result
+# validación adicional. validar q evitando exceder 50 caracteres
+# en este caso Query se pasa como un valor por defecto, permitiendo ser None y validar en caso de pasar un valor
+from typing import Union
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(q: Union[str, None] = Query(default=None, max_length=50)):
+    result = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        result.update({"q": q})
+    return result
+# hacer una solicitud
+import requests
+import json
+
+url = "http://localhost:8000/items"
+payload = {"q": "qweess"}
+headers = {"Content-Type": "application/json"}
+r = requests.get(url, params, headers=headers)
+print(r.url) # con json retorna la url con caracteres extraños
+# sin json retorna una url normal
+# al pasar un valor que exceda max_length retorna un error
+# añadir más vaidaciones
+from typing import Union
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def rea_items(
+    q: Union[str, None] = Query(default=None, min_length=3, max_length=21)):
+    result = ("items": [{"item_id": "Foo"}, {"item_id": "bar"}])
+    if q:
+        result.update({"q": q})
+    return result
+# añadir condicones adicionles con regex
+from typing import Union
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(q: Union[str, None] = Query(
+    default=None, min_length=3, max_length=20, regex="^fixed$"
+)):
+    result = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        result.update({"q": q})
+    return result
+# la palabra debe ser fixed ^ indica como inicia y $ como termina
+# valores predeterminados. dentro de Query se puede definir un valor predeterminado ademas de None
+# esto puede reemplazar Union pero ya no permite mas de un tipo de dato
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(q: str = Query(default="fixedquery", min_length=3)):
+    result = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        result.update({"q": q})
+    return result
+# hacerlo obligatorio. usar default=...
+# requerido con None. usando Union
+from typing import Union
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(
+    q: Union[str, None] = Query(default=..., min_length=3)):
+    result = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        result.update({"q": q})
+    return result
+# usar pydantic Required en ligar de ...
+from fastapi import FastAPI
+from pydantic import Required
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(q: str = Query(default=Required, min_length=3)):
+    result = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        result.update({"q": q})
+    return result
+# lista de parametros de consulta/valores multiples. recibir una lista de valores
+from typing import List, Union
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(q: Union[List[str]= None] = Query(default=None)):
+    result = {"q": q}
+    return result
+# con la url se pasa http://localhost:8000/items?q=www&q=xxxx o puede ir vacio
+# sin Query y usando List no permite ni uno ni varios. returna un dict con clave y una lista con varios valores
+
+# pasar una lista como valores predeterminados
+from typing import List
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(q: List[str] = Query(default=["foo", "bar"])):
+    result = {"q": q}
+    return result
+# tambien se puede usar directamente list pero no se validaran los datos
+
+# declarar más metadatos. title, description (son para los docs)
+from typing import Union
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(
+    q: Union[str, None] = Query(default=None, title="Query string",
+    description="desc", min_length=3)):
+    result = {"items": [{"item_id": "Foo"}, {"item_id": "bar"}]}
+    if q:
+        result.update({"q": q})
+    return result
+# alias. asignar un alias al parametro. ?item-query=value
+from typing import Union
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_items(
+    q: Union[str, None] = Query(Default=None, alias="item-query")):
+    result = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        result.update("q": q)
+    return result
+# la solicitud seria ?item-query=valor
+
+# parametros obsoletos.
+# cuando un parametro ya no se usa se tiene que matener para que en la documentación el cliente lo vea
+# donde q en seria en Query(deprecated=True). definir dentro y al final de Query()
+
+# excluir de OpenAPI. para excluir un parametro usar include_in_schema=False
+from typing import Union
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get("/items")
+async def read_item(
+    hquery: Union[str, None] = Query(default=None, include_in_schema=False)):
+    if hquery:
+        return {"hquery": hquery}
+    else:
+        return {"haquery": "not found!"}
+# se puede enviar mediante la url pero en docs no va a mostrar el body
