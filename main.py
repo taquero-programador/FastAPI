@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
-from fastapi import FastAPI, Query
-from typing import Union
+from fastapi import FastAPI, Path
 
 app = FastAPI()
 
-@app.get("/items")
+
+@app.get("/items/{item_id}")
 async def read_items(
-    q: Union[str, None] = Query(default=None, include_in_schema=False)):
+    *,
+    item_id: int = Path(default=int, title="ID item", gt=0, le=1000),
+    q: str):
+    result = {"item_id": item_id}
     if q:
-        return {"q": q}
-    else:
-        return {"q": "not found!"}
+        result.update({"q": q})
+    return result

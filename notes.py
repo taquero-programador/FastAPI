@@ -446,7 +446,7 @@ app = FastAPI()
 
 @app.get("/items")
 async def read_items(
-    q: Union[str, None] = Query(Default=None, alias="item-query")):
+    q: Union[str, None] = Query(default=None, alias="item-query")):
     result = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
     if q:
         result.update("q": q)
@@ -471,3 +471,67 @@ async def read_item(
     else:
         return {"haquery": "not found!"}
 # se puede enviar mediante la url pero en docs no va a mostrar el body
+
+# parametros de ruta y validación de ruta
+# Path permite los mismo tipos de validación y metadatos que Query
+from typing import Union
+from fastapi import FastAPI, Path, Query
+
+app = FastAPI()
+
+@app.get("/items/{item_id}")
+async def read_items(
+    item_id: int = Path(title="The ID of the item to get"),
+    q: Union[str, None] = Query(default=None, alias="item-query"),):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+# falla en Path requiere un argumento. al parecer requiere default=
+
+# ordenar los parametros a gusto propio. por defecto python devolveria error en esto a=100, b
+# ya que no puede ir primero un argumento predefinido y después un no definido. usar * al inicio de todos los params
+from fastapi import FastAPI, Path
+
+app = FastAPI()
+
+@app.get("/items/{item_id}")
+async def read_item(
+    *, item_id: int = Path(title="titulo"), q: str):
+    result = {"item_id": item_id}
+    if q:
+        result.update({"q": q})
+    return result
+# url http://localhost:8000/items/100?q=string
+
+# validacion de mayor o igual con ge
+from fastapi import FastAPI, Path
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_items(
+    *, item_id: int = Path(default=int, title="The ID of the item to get", ge=1), q: str
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+# donde ge le dice que debe ser igual o mayor a 1 /1?q=sde
+
+# validacion de números: mayor gt >= y menor le <=.
+from fastapi import FastAPI, Path
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_items(
+    *,
+    item_id: int = Path(default=int, title="ID item", gt=0, le=1000),
+    q: str):
+    result = {"item_id": item_id}
+    if q:
+        result.update({"q": q})
+    return result
