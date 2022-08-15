@@ -504,6 +504,13 @@ async def read_item(
     return result
 # url http://localhost:8000/items/100?q=string
 
+
+"""
+gt: mayor que >
+ge: moyor o igual >=
+lt: menor que <
+le: menor o igua =<
+"""
 # validacion de mayor o igual con ge
 from fastapi import FastAPI, Path
 
@@ -520,7 +527,7 @@ async def read_items(
     return results
 # donde ge le dice que debe ser igual o mayor a 1 /1?q=sde
 
-# validacion de números: mayor gt >= y menor le <=.
+# validacion de números: mayor gt > y menor o igual le <=.
 from fastapi import FastAPI, Path
 
 app = FastAPI()
