@@ -4,14 +4,14 @@ import requests
 import json
 import csv
 
-url = "http://localhost:8000/index-weights"
+url = "http://localhost:8000/items/545"
 headers = {"Content-Type": "application/json"}
 payload = {
-    1: 1.75,
-    2: 3.85
+  "name": "Foo",
+  "price": 35.4,
 }
 
-r = requests.post(url, data=json.dumps(payload), headers=headers)
+r = requests.put(url, data=json.dumps(payload), headers=headers)
 print(r.url)
 print(r.text)
 rr = r.json()
