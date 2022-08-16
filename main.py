@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
-from typing import Union
-
-from fastapi import Cookie, FastAPI
+from typing import List, Union
+from fastapi import FastAPI, Header
 
 app = FastAPI()
 
 
 @app.get("/items/")
-async def read_items(ads_id: Union[str, None] = Cookie(default=None)):
-    return {"ads_id": ads_id}
-
+async def read_items(x_token: Union[List[str], None] = Header(default=None)):
+    return {"X-Token values": x_token}

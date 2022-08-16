@@ -1188,3 +1188,39 @@ app = FastAPI()
 async def read_items(ads_id: Union[str, None] = Cookie(default=None)):
     return {"ads_id": ads_id}
 
+# parametros de headers.
+from typing import Union
+from fastapi import FastAPI, Header
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(user_agent: Union[str, None] = Header(default=None)):
+    return {"User-Agent": user_agent}
+# el header se envia sobre en el body sobrel el requests
+
+# conversion automatica. python no permite el guin medio. habilitar o deshabilitar con True or False
+from typing import Union
+from fastapi import FastAPI, Header
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(
+    strange_header: Union[str, None] = Header(default=None, convert_underscores=False)
+):
+    return {"strange_header": strange_header}
+
+# encabezados duplicados. encabezados con mutiples valores
+# X-Token puede recibir una lista con varios valores
+from typing import List, Union
+from fastapi import FastAPI, Header
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(x_token: Union[List[str], None] = Header(default=None)):
+    return {"X-Token values": x_token}
