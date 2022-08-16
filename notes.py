@@ -930,8 +930,11 @@ class Offer(BaseModel):
 @app.post("/offers/")
 async def create_offer(offer: Offer):
     return offer
-# offer erada todos los atributos desde Item
-# y espera algo como esto
+# offer herada todos los atributos desde Item
+# y espera algo como esto y el orden va de Offer, Item e Image
+# el primer body se envia solo k,v y los siguientes como una lista de diccionarios.
+# se debe a que al heredar el atributo se pasa como items: List[Item]
+# si no se especifica se pasa como una clave y su valor un diccionario
 {
   "name": "offer",
   "description": "desc offer",
@@ -942,11 +945,7 @@ async def create_offer(offer: Offer):
       "description": "desc item",
       "price": 450,
       "tax": 1.16,
-      "tags": [
-        "dos",
-        "uno",
-        "tres"
-      ],
+      "tags": ["dos","uno","tres"],
       "images": [
         {
           "url": "https://google.com",
@@ -960,9 +959,8 @@ async def create_offer(offer: Offer):
     }
   ]
 }
-# cuerpo de listas puras. RECAP
+# cuerpo de listas puras. puede usarse list directo de py>=3.9
 from typing import List
-
 from fastapi import FastAPI
 from pydantic import BaseModel, HttpUrl
 
@@ -973,13 +971,13 @@ class Image(BaseModel):
     url: HttpUrl
     name: str
 
-
 @app.post("/images/multiple/")
 async def create_multiple_images(images: List[Image]):
     return images
-# dict. RECAP
-from typing import Dict
 
+# dict. declarar un clave de un tipo de un valor de otro. seria util cuando no se sabe el valor de laas claves
+# o recibir una una clave de tipo int y valores como float
+from typing import Dict
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -988,4 +986,8 @@ app = FastAPI()
 @app.post("/index-weights/")
 async def create_index_weights(weights: Dict[int, float]):
     return weights
-# https://fastapi.tiangolo.com/tutorial/body-nested-models/
+# es diccionario se envia como un body. si en el decorador no se solicita una un argumento, el valor se envia como body
+{
+    1: 5.78,
+    2: .65
+}

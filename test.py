@@ -4,39 +4,17 @@ import requests
 import json
 import csv
 
-url = "http://localhost:8000/offers"
+url = "http://localhost:8000/index-weights"
 headers = {"Content-Type": "application/json"}
 payload = {
-  "name": "offer",
-  "description": "desc offer",
-  "price": 4545,
-  "items": [
-    {
-      "name": "items",
-      "description": "desc item",
-      "price": 450,
-      "tax": 1.16,
-      "tags": [
-        "dos",
-        "uno",
-        "tres"
-      ],
-      "images": [
-        {
-          "url": "https://google.com",
-          "name": "google"
-        },
-        {
-          "url": "https://duck.com",
-          "name": "duck"
-        }
-      ]
-    }
-  ]
+    1: 1.75,
+    2: 3.85
 }
-
 
 r = requests.post(url, data=json.dumps(payload), headers=headers)
 print(r.url)
 print(r.text)
 rr = r.json()
+
+for k,v in rr.items():
+    print(k,v)
