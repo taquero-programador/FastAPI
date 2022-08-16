@@ -1177,3 +1177,14 @@ async def read_items(
     }
 # el uuid se envia en la url y lo demas en un body. RECAP
 
+# parametros de cookies.
+from typing import Union
+from fastapi import Cookie, FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(ads_id: Union[str, None] = Cookie(default=None)):
+    return {"ads_id": ads_id}
+
