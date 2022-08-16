@@ -542,3 +542,155 @@ async def read_items(
     if q:
         result.update({"q": q})
     return result
+
+# body - multiples respuestas. declarar None en clases de la solicitud
+from typing import Union
+from fastapi import FastAPI, Path
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+
+
+@app.put("/items/{item_id}")
+async def update_item(
+    *,
+    item_id: int = Path(default=int, title="The ID of the item to get", ge=0, le=1000),
+    q: Union[str, None] = None,
+    item: Union[Item, None] = None):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    if item:
+        results.update({"item": item})
+    return results
+# en la funcion le dice a item que sera igua a la clase Item pero tambien puede ser None
+# requests http://localhost:8000/items/0?q=qw, lo demas se envia en el body
+# retorna un diccionario anidado
+# mandando la peticion con requests
+import requests
+import json
+
+url = "http://localhost:8000/items/545"
+headers = {"Content-Type application/json"}
+payload {
+    "name": "jdavi",
+    "description": "vocal",
+    "price": 456,
+    "tax": 1.75
+}
+r = requests.put(url, data=payload, headers=headers)
+print(r.url)
+print(r.text)
+
+# declarar varios parametros de cuerpo
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+
+class User(BaseModel):
+    username: str
+    full_name: Union[str, None] = None
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item, user: User):
+    results = {"item_id": item_id, "item": item, "user": user}
+    return results
+# http://localhost:8000/items/123 y lo demas sobre el body
+# para enviar 2 body es asi
+import requests
+import json
+
+url = "http://localhost:8000/items/457"
+headers = {"Content-Type": "application/json"}
+payload = {
+  "item": {
+    "name": "john",
+    "description": "vocals",
+    "price": 5555,
+    "tax": 1.15
+  },
+  "user": {
+    "username": "jdevil",
+    "full_name": "jonathan davis"
+  }
+}
+r= requests.put(url, data=json.dums(payload), headers)
+print(r.status_code)
+print(r.url)
+rr = r.json()
+print(rr)
+# fastapi hara la conversion para asignar cada valor item y user
+
+# valores singulares en el cuerpo. al igual que Query y Path en body se pueden añadir parametros adicionales
+# añadir importance como si fuera un body requests. se envia en body y no sobre la url
+from typing import Union
+from fastapi import Body, FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+
+class User(BaseModel):
+    username: str
+    full_name: Union[str, None] = None
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item, user: User, importance: int = Body(...)):
+    results = {"item_id": item_id, "item": item, "user": user, "importance": importance}
+    return results
+# usar (...) para obligatorio pero no marca error si se envia vació.
+# se puede pasar un valor por defecto. permite gt, ge, lt y le
+# espera algo como esto
+{
+    "item": {
+        "name": "Foo",
+        "description": "The pretender",
+        "price": 42.0,
+        "tax": 3.2
+    },
+    "user": {
+        "username": "dave",
+        "full_name": "Dave Grohl"
+    },
+    "importance": 5
+}
+
+# incrustrar un solo parametro en el body.
+from fastapi import Body, FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item = Body(embed=True)):
+    results = {"item_id": item_id, "item": item}
+    return results
+# en este caso a pesar de ser solo un body lo espera como un dict {item: {k:v }} en lugar de {k:v}
