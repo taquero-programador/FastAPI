@@ -1,23 +1,34 @@
 #!/usr/bin/env python3
 
-from typing import Union
+from typing import List, Set, Union
 
-from fastapi import Body, FastAPI
-from pydantic import BaseModel, Field
+from fastapi import FastAPI
+from pydantic import BaseModel, HttpUrl
 
 app = FastAPI()
 
 
+class Image(BaseModel):
+    url: HttpUrl
+    name: str
+
+
 class Item(BaseModel):
     name: str
-    description: Union[str, None] = Field(
-        default=None, title="The description of the item", max_length=300
-    )
-    price: float = Field(gt=0, description="The price must be greater than zero")
+    description: Union[str, None] = None
+    price: float
     tax: Union[float, None] = None
+    tags: Set[str] = set()
+    images: Union[List[Image], None] = None
 
 
-@app.put("/items/{item_id}")
-async def update_item(item_id: int, item: Item = Body(...,embed=True)):
-    results = {"item_id": item_id, "item": item}
-    return results
+class Offer(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    items: List[Item]
+
+
+@app.post("/offers/")
+async def create_offer(offer: Offer):
+    return offer

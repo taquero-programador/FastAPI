@@ -4,23 +4,39 @@ import requests
 import json
 import csv
 
-url = "http://localhost:8000/items/444"
+url = "http://localhost:8000/offers"
 headers = {"Content-Type": "application/json"}
 payload = {
-  "item": {
-    "name": "john",
-    "description": "vocals",
-    "price": 5555,
-    "tax": 1.15
-  },
-  "user": {
-    "username": "jdevil",
-    "full_name": "jonathan davis"
-  },
-    "importance": 25
+  "name": "offer",
+  "description": "desc offer",
+  "price": 4545,
+  "items": [
+    {
+      "name": "items",
+      "description": "desc item",
+      "price": 450,
+      "tax": 1.16,
+      "tags": [
+        "dos",
+        "uno",
+        "tres"
+      ],
+      "images": [
+        {
+          "url": "https://google.com",
+          "name": "google"
+        },
+        {
+          "url": "https://duck.com",
+          "name": "duck"
+        }
+      ]
+    }
+  ]
 }
 
-r = requests.put(url, data=json.dumps(payload), headers=headers)
+
+r = requests.post(url, data=json.dumps(payload), headers=headers)
 print(r.url)
 print(r.text)
 rr = r.json()

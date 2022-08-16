@@ -716,3 +716,276 @@ class Item(BaseModel):
 async def update_item(item_id: int, item: Item = Body(..., embed=True)):
     results = {"item_id": item_id, "item": item}
     return results
+
+# body - modelos anidados.
+# campos de lista. usar list = [] directamente de python
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: list = []
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    results = {"item_id": item_id, "item": item}
+    return results
+# tags permite varios valores pasados dentro de una lista
+
+# en versiones superiores py3.9 se puede usar list para las declaraciones de tipo, en versiones menores
+# from typing import List
+from typing import List, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: List[str] = []
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    results = {"item_id": item_id, "item": item}
+    return results
+# vendria a ser lo mismo que tags: Union[str, None] = None
+# >=py3.9 lista: list[str], <=py3.9 lista: List[str] importando List de typing
+
+# establecer tipos. supongamos que se pasa una lista pero deseamos que los valores sea unicos. usar set()
+from typing import Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    results = {"item_id": item_id, "item": item}
+    return results
+
+# modelos anidados. similar a la herencia, utiliza el objeto de una clase para ser usada en otra y cambiar los parametros
+from typing import Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Image(BaseModel):
+    url: str
+    name: str
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+    image: Union[Image, None] = None
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    results = {"item_id": item_id, "item": item}
+    return results
+# la clase Item crea atributo que puede ser vacio o usar el atributo de la clase Imagen
+# espera algo como esto
+{
+    "name": "Foo",
+    "description": "The pretender",
+    "price": 42.0,
+    "tax": 3.2,
+    "tags": ["rock", "metal", "bar"],
+    "image": {
+        "url": "http://example.com/baz.jpg",
+        "name": "The Foo live"
+    }
+}
+# tipos especiales y validación. además de lso tipos str, int, float, se puede usar algo más avanazado para str
+# en lugar de str usar HttpUrl
+from typing import Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel, HttpUrl
+
+app = FastAPI()
+
+
+class Image(BaseModel):
+    url: HttpUrl
+    name: str
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+    image: Union[Image, None] = None
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    results = {"item_id": item_id, "item": item}
+    return results
+# con HttpUrl valida la cadena en busca de una url valida requiere http
+
+# atributos con lista de submodelos List, Set, etc.
+from typing import List, Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel, HttpUrl
+
+app = FastAPI()
+
+
+class Image(BaseModel):
+    url: HttpUrl
+    name: str
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+    images: Union[List[Image], None] = None
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    results = {"item_id": item_id, "item": item}
+    return results
+# donde Item de nuevo crea un atributo que puede ser vacio o pasarte una lista con diccionarios
+# espera algo como
+{
+    "name": "zidane",
+    "description": "desc",
+    "price": 5425,
+    "tax": 0,
+    "tags": ["rock", "punk"],
+    "image": [
+        {
+        "url": "https://google.com",
+        "name": "goimg"},
+        {
+            "url": "https://reddit.com",
+            "name": "reddit"
+        }
+    ]
+}
+
+# modelos profundamente anidados.
+from typing import List, Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel, HttpUrl
+
+app = FastAPI()
+
+
+class Image(BaseModel):
+    url: HttpUrl
+    name: str
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+    images: Union[List[Image], None] = None
+
+
+class Offer(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    items: List[Item]
+
+
+@app.post("/offers/")
+async def create_offer(offer: Offer):
+    return offer
+# offer erada todos los atributos desde Item
+# y espera algo como esto
+{
+  "name": "offer",
+  "description": "desc offer",
+  "price": 4545,
+  "items": [
+    {
+      "name": "items",
+      "description": "desc item",
+      "price": 450,
+      "tax": 1.16,
+      "tags": [
+        "dos",
+        "uno",
+        "tres"
+      ],
+      "images": [
+        {
+          "url": "https://google.com",
+          "name": "google"
+        },
+        {
+          "url": "https://duck.com",
+          "name": "duck"
+        }
+      ]
+    }
+  ]
+}
+# cuerpo de listas puras. RECAP
+from typing import List
+
+from fastapi import FastAPI
+from pydantic import BaseModel, HttpUrl
+
+app = FastAPI()
+
+
+class Image(BaseModel):
+    url: HttpUrl
+    name: str
+
+
+@app.post("/images/multiple/")
+async def create_multiple_images(images: List[Image]):
+    return images
+# dict. RECAP
+from typing import Dict
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.post("/index-weights/")
+async def create_index_weights(weights: Dict[int, float]):
+    return weights
+# https://fastapi.tiangolo.com/tutorial/body-nested-models/
