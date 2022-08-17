@@ -1569,3 +1569,233 @@ app = FastAPI()
 @app.post("/login/")
 async def login(username: str = Form(), password: str = Form()):
     return {"username": username}
+
+# solicitar achivos. pip3 install python-multipart para enviar los archivos como formularios
+from fastapi import FastAPI, File, UploadFile
+
+app = FastAPI()
+
+
+@app.post("/files/")
+async def create_file(file: bytes = File(...)):
+    return {"file_size": len(file)}
+
+
+@app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile):
+    return {"filename": file.filename}
+# bytes() lee el archivo y lo almacena en memoria, bien para archivos pequeños.
+# files solo lee el archivo y retorna el tamaño
+"""
+ventajas de UploadFile sobre File().
+- no se usa File como valor predeterminado
+- utiliza un archivo en cola: se almacena en memoria hasta un tamaño maximo, después
+de pasar el limite se almacena en disco
+- funciona bien par archivos grandes.
+- puede obtener metadatos del archivo.
+
+UploadFile tiene los siguientes atributos.
+filename: str con el nombre del archivo original.
+content-type: str tipo de contenido MIME.
+file: SpooledTemporaryFile pasar directamente a otras funciones.
+
+UploadFile tiene metodos async.
+write(date): escribe datos (str o bytes).
+read(size): lee (int).
+seek(offset): va a la posicion de byte (int) en el archivo.
+await myfile.read() util si se ejecuta y desea volver a leer el contenido
+close(): cierra el archivo
+"""
+# carga de archivo opcional
+from typing import Union
+from fastapi import FastAPI, File, UploadFile
+
+app = FastAPI()
+
+
+@app.post("/files/")
+async def create_file(file: Union[bytes, None] = File(default=None)):
+    if not file:
+        return {"message": "No file sent"}
+    else:
+        return {"file_size": len(file)}
+
+
+@app.post("/uploadfile/")
+async def create_upload_file(file: Union[UploadFile, None] = None):
+    if not file:
+        return {"message": "No upload file sent"}
+    else:
+        return {"filename": file.filename}
+# en ambos casos el archivo puede ser opcional y debajo hay código que lo valida para retornar un mensaje
+
+# UploadFile con metadatos adicionales con File()
+from fastapi import FastAPI, File, UploadFile
+
+app = FastAPI()
+
+
+@app.post("/files/")
+async def create_file(file: bytes = File(description="A file read as bytes")):
+    return {"file_size": len(file)}
+
+
+@app.post("/uploadfile/")
+async def create_upload_file(
+    file: UploadFile = File(description="A file read as UploadFile"),
+):
+    return {"filename": file.filename}
+# la descripcion es visible en /redoc
+
+# carga de archivos multiples asociados al mismo campo de formulario
+from typing import List
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import HTMLResponse
+
+app = FastAPI()
+
+
+@app.post("/files/")
+async def create_files(files: List[bytes] = File(...)):
+    return {"file_sizes": [len(file) for file in files]}
+
+
+@app.post("/uploadfiles/")
+async def create_upload_files(files: List[UploadFile]):
+    return {"filenames": [file.filename for file in files]}
+
+
+@app.get("/")
+async def main():
+    content = """
+<body>
+<form action="/files/" enctype="multipart/form-data" method="post">
+<input name="files" type="file" multiple>
+<input type="submit">
+</form>
+<form action="/uploadfiles/" enctype="multipart/form-data" method="post">
+<input name="files" type="file" multiple>
+<input type="submit">
+</form>
+</body>
+    """
+    return HTMLResponse(content=content)
+
+# cargar multiples archivos con metadatos adicionales
+from typing import List
+
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import HTMLResponse
+
+app = FastAPI()
+
+
+@app.post("/files/")
+async def create_files(
+    files: List[bytes] = File(..., description="Multiple files as bytes"),
+):
+    return {"file_sizes": [len(file) for file in files]}
+
+
+@app.post("/uploadfiles/")
+async def create_upload_files(
+    files: List[UploadFile] = File(..., description="Multiple files as UploadFile"),
+):
+    return {"filenames": [file.filename for file in files]}
+
+
+@app.get("/")
+async def main():
+    content = """
+<body>
+<form action="/files/" enctype="multipart/form-data" method="post">
+<input name="files" type="file" multiple>
+<input type="submit">
+</form>
+<form action="/uploadfiles/" enctype="multipart/form-data" method="post">
+<input name="files" type="file" multiple>
+<input type="submit">
+</form>
+</body>
+    """
+    return HTMLResponse(content=content)
+# cada formulario (declarado en la ruta / raiz) tiene asignado un metodo post en action
+
+# solicitud de asrchivos y formularios. definir archivos y campos de formulario al mismo tiempo File y From
+from fastapi import FastAPI, File, Form, UploadFile
+
+app = FastAPI()
+
+
+@app.post("/files/")
+async def create_file(
+    file: bytes = File(...), fileb: UploadFile = File(...), token: str = Form(...)
+):
+    return {
+        "file_size": len(file),
+        "token": token,
+        "fileb_content_type": fileb.content_type,
+    }
+
+# manejo de errores.
+# usar HTTPException
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+
+items = {"foo": "The Foo Wrestlers"}
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: str):
+    if item_id not in items:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"item": items[item_id]}
+# maneja el eror en caso de no coinidir y devuelve un detalle
+
+# agregar encabezados personalizados para tipos de seguridad.
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+
+items = {"foo": "The Foo Wrestlers"}
+
+
+@app.get("/items-header/{item_id}")
+async def read_item_header(item_id: str):
+    if item_id not in items:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+            headers={"X-Error": "There goes my error"},
+        )
+    return {"item": items[item_id]}
+
+# instalar controladores de excepciones personalizadas.
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+
+class UnicornException(Exception):
+    def __init__(self, name: str):
+        self.name = name
+
+
+app = FastAPI()
+
+
+@app.exception_handler(UnicornException)
+async def unicorn_exception_handler(request: Request, exc: UnicornException):
+    return JSONResponse(
+        status_code=418,
+        content={"message": f"Oops! {exc.name} did something. There goes a rainbow..."},
+    )
+
+
+@app.get("/unicorns/{name}")
+async def read_unicorn(name: str):
+    if name == "yolo":
+        raise UnicornException(name=name)
+    return {"unicorn_name": name}
+
+#

@@ -6,12 +6,7 @@ import csv
 
 url = "http://localhost:8000/user"
 headers = {"Content-Type": "application/json"}
-payload = {
-    "username": "lain",
-    "password": "kkf4if4g4v@ł",
-    "email": "example@mail.com",
-    "full_name": "fake name"
-}
+
 
 r = requests.post(url, data=json.dumps(payload),  headers=headers)
 print(r.url)
