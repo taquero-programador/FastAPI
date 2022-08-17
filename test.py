@@ -3,12 +3,18 @@
 import requests
 import json
 import csv
+from datetime import datetime
+a = datetime.today()
 
-url = "http://localhost:8000/user"
+url = "http://localhost:8000/items/458"
 headers = {"Content-Type": "application/json"}
+payload = {
+    "title": "test",
+    "timestamp": a,
+    "description": "test desc"
+}
 
-
-r = requests.post(url, data=json.dumps(payload),  headers=headers)
+r = requests.put(url, data=json.dumps(payload),  headers=headers)
 print(r.url)
 print(r.text)
 rr = r.json()
