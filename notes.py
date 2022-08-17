@@ -1560,3 +1560,12 @@ app = FastAPI()
 async def create_item(name: str):
     return {"name": name}
 
+# datos de formulario. recibir campos de un formulario en lugar de un JSON
+from fastapi import FastAPI, Form
+
+app = FastAPI()
+
+
+@app.post("/login/")
+async def login(username: str = Form(), password: str = Form()):
+    return {"username": username}
