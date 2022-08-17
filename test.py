@@ -4,7 +4,7 @@ import requests
 import json
 import csv
 
-url = "http://localhost:8000/items/bar"
+url = "http://localhost:8000/user"
 headers = {"Content-Type": "application/json"}
 payload = {
     "username": "lain",
@@ -13,7 +13,7 @@ payload = {
     "full_name": "fake name"
 }
 
-r = requests.get(url,  headers=headers)
+r = requests.post(url, data=json.dumps(payload),  headers=headers)
 print(r.url)
 print(r.text)
 rr = r.json()
