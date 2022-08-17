@@ -1798,4 +1798,187 @@ async def read_unicorn(name: str):
         raise UnicornException(name=name)
     return {"unicorn_name": name}
 
-#
+# configuración operaciones de ruta.
+# coódigo de estado de respuesta.
+from typing import Set, Union
+from fastapi import FastAPI, status
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+
+
+@app.post("/items/", response_model=Item, status_code=status.HTTP_201_CREATED)
+async def create_item(item: Item):
+    return item
+# espera un requests, donde el modelo de entrada sera el de salida
+
+# tags. agregar etiquetas a la ruta de operaciones
+from typing import Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+
+
+@app.post("/items/", response_model=Item, tags=["items"])
+async def create_item(item: Item):
+    return item
+
+
+@app.get("/items/", tags=["items"])
+async def read_items():
+    return [{"name": "Foo", "price": 42}]
+
+
+@app.get("/users/", tags=["users"])
+async def read_users():
+    return [{"username": "johndoe"}]
+# son solo tags, fuera de eso no tiene ninguna funcion especial
+
+# etiquetas con enumeración
+from enum import Enum
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+class Tags(Enum):
+    items = "items"
+    users = "users"
+
+
+@app.get("/items/", tags=[Tags.items])
+async def get_items():
+    return ["Portal gun", "Plumbus"]
+
+
+@app.get("/users/", tags=[Tags.users])
+async def read_users():
+    return ["Rick", "Morty"]
+# tags accede a la enumeracion usando el Clase.atributo_name
+
+# resumen y descripcion. summary y descripcion
+from typing import Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+
+
+@app.post(
+    "/items/",
+    response_model=Item,
+    summary="Create an item",
+    description="Create an item with all the information, name, description, price, tax and a set of unique tags",
+)
+async def create_item(item: Item):
+    return item
+
+# descripcion de docstring.
+from typing import Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+
+
+@app.post("/items/", response_model=Item, summary="Create an item")
+async def create_item(item: Item):
+    """
+    Create an item with all the information:
+
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if the item doesn't have tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
+    return item
+# permite markdown y sera visible en docs
+
+# descripcion de respuesta con el parametro response_description
+from typing import Set, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
+
+
+@app.post(
+    "/items/",
+    response_model=Item,
+    summary="Create an item",
+    response_description="The created item",
+)
+async def create_item(item: Item):
+    """
+    Create an item with all the information:
+
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if the item doesn't have tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
+    return item
+# la descripcion es visible en docs
+
+# marcar un path ruta como obsoleta
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/", tags=["items"])
+async def read_items():
+    return [{"name": "Foo", "price": 42}]
+
+
+@app.get("/users/", tags=["users"])
+async def read_users():
+    return [{"username": "johndoe"}]
+
+
+@app.get("/elements/", tags=["items"], deprecated=True)
+async def read_elements():
+    return [{"item_id": "Foo"}]

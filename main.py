@@ -1,19 +1,36 @@
 #!/usr/bin/env python3
 
-from fastapi import FastAPI, HTTPException
+from typing import Set, Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI()
 
-items = {"foo": "The Foo Wrestlers"}
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: Set[str] = set()
 
 
-@app.get("/items-header/{item_id}")
-async def read_item_header(item_id: str):
-    if item_id not in items:
-        raise HTTPException(
-            status_code=404,
-            detail="Item not found",
-            headers={"X-Error": "There goes my error"},
-        )
-    return {"item": items[item_id]}
+@app.post(
+    "/items/",
+    response_model=Item,
+    summary="Create an item",
+    response_description="The created item",
+)
+async def create_item(item: Item):
+    """
+    Create an item with all the information:
+
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if the item doesn't have tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
+    return item
 
