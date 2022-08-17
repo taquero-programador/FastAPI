@@ -4,17 +4,19 @@ import requests
 import json
 import csv
 
-url = "http://localhost:8000/items/545"
+url = "http://localhost:8000/items/bar"
 headers = {"Content-Type": "application/json"}
 payload = {
-  "name": "Foo",
-  "price": 35.4,
+    "username": "lain",
+    "password": "kkf4if4g4v@ł",
+    "email": "example@mail.com",
+    "full_name": "fake name"
 }
 
-r = requests.put(url, data=json.dumps(payload), headers=headers)
+r = requests.get(url,  headers=headers)
 print(r.url)
 print(r.text)
 rr = r.json()
 
 for k,v in rr.items():
-    print(k,v)
+    print(f"{k}: {v}")

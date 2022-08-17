@@ -1224,3 +1224,192 @@ app = FastAPI()
 @app.get("/items/")
 async def read_items(x_token: Union[List[str], None] = Header(default=None)):
     return {"X-Token values": x_token}
+
+# modelos de respuesta. response_model puede ser usado en cualquier operacion de rutas
+from typing import List, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: Union[float, None] = None
+    tags: List[str] = []
+
+
+@app.post("/items/", response_model=Item)
+async def create_item(item: Item):
+    return item
+"""
+response_model es parte del decorado y no de la funcion.
+FastAPI usa response_model para
+- convertir los datos de salida a su declaración de tipo
+- validar datos
+- agrega schema json en a respuesta de la ruta
+- sera usado en la documentación
+"""
+# devolver los mismos datos de entrada.
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class UserIn(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: Union[str, None] = None
+
+
+# Don't do this in production!
+@app.post("/user/", response_model=UserIn)
+async def create_user(user: UserIn):
+    return user
+# con esto, lo mismo que se envia es lo mismo que se recibe
+# no deberia se un problema porque el mismo usuario es quien envia la contraseña
+# no almacenar ni enviar la contraseña en un requests
+
+# agregar un modelos de salida. definir un modelo para la entrada y otro para la salida de la contraseña
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class UserIn(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: Union[str, None] = None
+
+
+class UserOut(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: Union[str, None] = None
+
+
+@app.post("/user/", response_model=UserOut)
+async def create_user(user: UserIn):
+    return user
+"""
+se recibe un modelo en UserIn, mientras que UserOut tomas los mismo valores pero sin la contraseña
+el lugar de devolver todo response_model se encarga de envier el modelo modificado en lugar del original
+"""
+
+# parametros de codificacion del modelo de respuesta. usar response_model_exclude_unset=True
+from typing import List, Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: float = 10.5
+    tags: List[str] = []
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
+    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+}
+
+
+@app.get("/items/{item_id}", response_model=Item, response_model_exclude_unset=True)
+async def read_item(item_id: str):
+    return items[item_id]
+# en este caso cada ID tiene un valor determinado.
+
+
+# response_mode_include y response_mode_exclude. toman un set str con el nombre del atributo a incluir o excluir.
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: float = 10.5
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The Bar fighters", "price": 62, "tax": 20.2},
+    "baz": {
+        "name": "Baz",
+        "description": "There goes my baz",
+        "price": 50.2,
+        "tax": 10.5,
+    },
+}
+
+
+@app.get(
+    "/items/{item_id}/name",
+    response_model=Item,
+    response_model_include={"name", "description"},
+)
+async def read_item_name(item_id: str):
+    return items[item_id]
+
+
+@app.get("/items/{item_id}/public", response_model=Item, response_model_exclude={"tax"})
+async def read_item_public_data(item_id: str):
+    return items[item_id]
+# en el caso anterior cada endpoint excluye o incluye determinados valores
+
+# usar listas en lugar de sets
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    tax: float = 10.5
+
+
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The Bar fighters", "price": 62, "tax": 20.2},
+    "baz": {
+        "name": "Baz",
+        "description": "There goes my baz",
+        "price": 50.2,
+        "tax": 10.5,
+    },
+}
+
+
+@app.get(
+    "/items/{item_id}/name",
+    response_model=Item,
+    response_model_include=["name", "description"],
+)
+async def read_item_name(item_id: str):
+    return items[item_id]
+
+
+@app.get("/items/{item_id}/public", response_model=Item, response_model_exclude=["tax"])
+async def read_item_public_data(item_id: str):
+    return items[item_id]
