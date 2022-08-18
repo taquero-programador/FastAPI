@@ -4,7 +4,6 @@ import requests
 import json
 from methods import url, get, put, post, patch
 
-url = "http://localhost:8000/{}/{}"
 res = True
 while res:
     if res == "1":
@@ -17,10 +16,13 @@ while res:
         patch()
     elif res == "5":
         pass
+    elif res == "q":
+        break
     print("""select metod
     [1] GET
     [2] POST
     [3] PUT
     [4] PATCH
-    [5] DELETE""")
+    [5] DELETE
+    [q] EXIT""")
     res = input("Method?: ")
