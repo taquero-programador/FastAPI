@@ -2084,3 +2084,4 @@ async def update_item(item_id: str, item: Item):
     items[item_id] = jsonable_encoder(updated_item)
     return updated_item
 # utiliza el metodo .copy() para realizar el update generando un dict sin valores predeterminados.
+# https://fastapi.tiangolo.com/tutorial/dependencies/
