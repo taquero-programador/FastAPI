@@ -2089,7 +2089,7 @@ async def update_item(item_id: str, item: Item):
 dependencias inyeccion de dependencias.
 - logic comparativa
 - compartir conexion de base de datos
-- cumplir requisistos de seguridad, autenticacion, roles, etc.
+- cumplir requisistos de seguridad, autenticación, roles, etc.
 """
 # ejemplo simple
 from typing import Union
@@ -2285,3 +2285,206 @@ async def get_db():
         yield db
     finally:
         db.close()
+
+"""
+seguridad (puede llegar a ser complejo).
+
+OAuth2.
+especificación que define varias formas de manejar la autenticación y autorización.
+incluye formas de autenticación de un tercero para inicio de sesión como FB, TW, G, etc.
+
+OAuth1.
+es demaciado compleja ya que inlcuia directamente como encriptar la comunicación.
+no es muy popular o usada.
+OAuth2 no especifica cifrar la comunicación pero espera ser servido sobre HTTPS
+
+OpenID. no muy popular o usada
+
+OpenAPI (swagger).
+opensource parte de la Linux Fundation
+FastAPI se base en OpenAPI
+
+OpenAPi define los siguientes esquemas de seguridad.
+-- apikey: una clave especifica de la app que puede provenir de:
+- un parametro de consulta
+- un encabezado
+- cookies
+-- http: sistema de autenticación HTTP estandar:
+- bearer: un encabezado Authorization valor bearer heredaro de OAuth
+- autenticación básica HTTP
+- resumen HTTP
+-- oauth2: todas las formar OAuth2 llamadas 'flujos'
+- flujos para crear cliente de autenticación (FB, GH, G, TW, etc)
+- implicit
+- clientCredential
+- authorizacionCode
+- flujo especial para manejar la autenticación en la aplicación
+password
+-- openIdConnect: tiene una forma de descubrir los datos de autenticación de OAuth2
+
+fastapi proporciona fastapi.security que simpifica el uso de los mecanismos de seguridad
+"""
+
+# seguridad. suponiendo que se quiere autenticar el frontend con el backend que se encuentran en dominios diferente
+# o en un path diferente
+from fastapi import Depends, FastAPI
+from fastapi.security import OAuth2PasswordBearer
+
+app = FastAPI()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+@app.get("/items/")
+async def read_items(token: str = Depends(oauth2_scheme)):
+    return {"token": token}
+# el flujo password es una de las formas OAuth2 para manejar la seguridad y la autenticación.
+"""
+el proceso seria
+- usario escribe user y pass. envia
+- envia user y pass atraves de la URL tokenUrl="toker"
+- la api comprueba user y pass y responde con un token
+un token es una cadena que se puede usar después para verificar el user.
+el token esta configurado para caducar después de un tiempo.
+por lo que el usuario tendra que iniciar sesion en un tiempo determinado.
+si el token es robado no existe mucho riesgo
+- la interfaz almacena temporalmente el token en algun lugar
+- el usuario ira a otra secciones de la interfaz web
+- la interfaz necesitara obtener más datos de la api
+necesita autorización para ese endpoint especifico.
+para auntenticar con la api, enviara un encabezado Authorization con un valor
+Bearer adicional.
+si la ficha contiene foobar, el contenido de Authorization en el encabezado seria Bearer foobar
+"""
+# la instancia OAuth2PasswordBearer obtiene la url que el cliente usara para enviar el user y pass
+# que a su vez es una dependencia, al no tener una autorización genera un status code 401
+
+# obtener un usuario actual.
+# crear modelo de usurio.
+from typing import Union
+from fastapi import Depends, FastAPI
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+
+app = FastAPI()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+class User(BaseModel):
+    username: str
+    email: Union[str, None] = None
+    full_name: Union[str, None] = None
+    disabled: Union[bool, None] = None
+
+
+def fake_decode_token(token):
+    return User(
+        username=token + "fakedecoded", email="john@example.com", full_name="John Doe"
+    )
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    user = fake_decode_token(token)
+    return user
+
+
+@app.get("/users/me")
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
+# hay dos depenencias. get_current_user obtiene el usuario actual(sub dependencia es oauth2_scheme) y depende de fake_decode_token (utilidad)
+# que es quien llama al modelo User para definir valores
+# y todo se manda llamar desde la funcion de ruta el cual es una inyección de la dependencía
+
+# oauth2 con password y Bearer. enviar username y password como datos de formulario (no hay json)
+# scope. es una cadena larga separada por espacios
+from typing import Union
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
+
+fake_users_db = {
+    "johndoe": {
+        "username": "johndoe",
+        "full_name": "John Doe",
+        "email": "johndoe@example.com",
+        "hashed_password": "fakehashedsecret",
+        "disabled": False,
+    },
+    "alice": {
+        "username": "alice",
+        "full_name": "Alice Wonderson",
+        "email": "alice@example.com",
+        "hashed_password": "fakehashedsecret2",
+        "disabled": True,
+    },
+}
+
+app = FastAPI()
+
+
+def fake_hash_password(password: str):
+    return "fakehashed" + password
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+class User(BaseModel):
+    username: str
+    email: Union[str, None] = None
+    full_name: Union[str, None] = None
+    disabled: Union[bool, None] = None
+
+
+class UserInDB(User):
+    hashed_password: str
+
+
+def get_user(db, username: str):
+    if username in db:
+        user_dict = db[username]
+        return UserInDB(**user_dict)
+
+
+def fake_decode_token(token):
+    # This doesn't provide any security at all
+    # Check the next version
+    user = get_user(fake_users_db, token)
+    return user
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    user = fake_decode_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+async def get_current_active_user(current_user: User = Depends(get_current_user)):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+
+@app.post("/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user_dict = fake_users_db.get(form_data.username)
+    if not user_dict:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    user = UserInDB(**user_dict)
+    hashed_password = fake_hash_password(form_data.password)
+    if not hashed_password == user.hashed_password:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+    return {"access_token": user.username, "token_type": "bearer"}
+
+
+@app.get("/users/me")
+async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    return current_user
+# https://fastapi.tiangolo.com/tutorial/security/simple-oauth2/   RECAP
