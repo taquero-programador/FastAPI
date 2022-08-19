@@ -1,49 +1,28 @@
 #!/usr/bin/env python3
 
-from typing import List, Union
-from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel
-
-app = FastAPI()
+from fastapi import Depends, FastAPI, Header, HTTPException
 
 
-class Item(BaseModel):
-    name: Union[str, None] = None
-    description: Union[str, None] = None
-    price: Union[float, None] = None
-    tax: float = 10.5
-    tags: List[str] = []
-
-class Salida(BaseModel):
-    name: Union[str, None] = None
-    price: Union[float, None] = None
+async def verify_token(x_token: str = Header(...)):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
 
 
-items = {
-    "foo": {"name": "Foo", "price": 50.2},
-    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
-    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
-}
+async def verify_key(x_key: str = Header(...)):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
 
 
-@app.get("/items/{item_id}", response_model=Item)
-async def read_item(item_id: str):
-    return items[item_id]
-
-@app.post("/items/{item_id}", response_model=Salida)
-async def post_ite(item_id: str, item: Item):
-    update_item_encoded = jsonable_encoder(item)
-    items[item_id] = update_item_encoded
-    return update_item_encoded
+app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
 
 
-@app.patch("/items/{item_id}", response_model=Item)
-async def update_item(item_id: str, item: Item):
-    stored_item_data = items[item_id]
-    stored_item_model = Item(**stored_item_data)
-    update_data = item.dict(exclude_unset=True)
-    updated_item = stored_item_model.copy(update=update_data)
-    items[item_id] = jsonable_encoder(updated_item)
-    return updated_item
+@app.get("/items/")
+async def read_items():
+    return [{"item": "Portal Gun"}, {"item": "Plumbus"}]
+
+
+@app.get("/users/")
+async def read_users():
+    return [{"username": "Rick"}, {"username": "Morty"}]
 

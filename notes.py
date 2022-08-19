@@ -2084,4 +2084,204 @@ async def update_item(item_id: str, item: Item):
     items[item_id] = jsonable_encoder(updated_item)
     return updated_item
 # utiliza el metodo .copy() para realizar el update generando un dict sin valores predeterminados.
-# https://fastapi.tiangolo.com/tutorial/dependencies/
+
+"""
+dependencias inyeccion de dependencias.
+- logic comparativa
+- compartir conexion de base de datos
+- cumplir requisistos de seguridad, autenticacion, roles, etc.
+"""
+# ejemplo simple
+from typing import Union
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return commons
+# common_parameters espera un argumento q str, un skip opcional o 0 u limit opcional o 100, al final devuelve un dict
+# url http://localhost:8000/items/?q=test&skip=0&limit=100
+# depends recibe un solo parametro el cual deberia ser una funcion, en este caso common_parameters.
+"""
+cada vez que llega una nueva solicitud
+- llama a la funcion de dependencia confiable de parametros confiables
+- obtiene el resultado de la función
+- asigna el resultado de la funcion al parametro de path (get)
+
+async y no async.
+se puede decalara funciones path async o normales def.
+de igual manera para dependencias, no hay problema porque fastapi sabra identificarlo
+"""
+# la funciones de operación de ruta se usan simpre que una operacion y ruta coinciden
+# esto le hace saber a la funcion de path que depende de algo más que debe ejecutarse antes de su funcion
+"""
+otros terminos
+- recursos
+- proveedores
+- servicios
+- inyectables
+- componentes
+
+la intregacion y dependencias se puede contruir usando la inyección de dependencias.
+esto permite añadir más funcionalidades a los parametros de ruta
+"""
+
+# clases como dependencias. cambiar una funcion por una clase
+from typing import Union
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+# se envia en la url, si no recibe el parametro q, retorna los valores predeterminados. retorna clave: valor
+# retorna una lista de dict
+# se usa dos veces el CommonQueryParams pero el último es el que usa para saber la dependencía que usara
+# usar solo una ves el nombre de la dependencia en lugar de dos
+from typing import Union
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons=Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+# el ejemplo de arriba es el mismo pero solo usa una vez la llamada de dependencias.
+
+# sub-dependencias. crear dependencias que tengan sub-dependencias.
+from typing import Union
+from fastapi import Cookie, Depends, FastAPI
+
+app = FastAPI()
+
+
+def query_extractor(q: Union[str, None] = None):
+    return q
+
+
+def query_or_cookie_extractor(
+    q: str = Depends(query_extractor),
+    last_query: Union[str, None] = Cookie(default=None),
+):
+    if not q:
+        return last_query
+    return q
+
+
+@app.get("/items/")
+async def read_query(query_or_default: str = Depends(query_or_cookie_extractor)):
+    return {"q_or_cookie": query_or_default}
+# cookie depende de query_extractor para obtener q, si cookies no recibe nada retorna el valor por defecto y aunque last_query reciba algo
+# retornara el valor por defecto
+
+# dependencias en decoradores de operaciones de rutas.
+# en algunos casos se necesita ejecutar una dependencia sin devolver el valor de retorno.
+# usar una List o list para la dependencia
+
+# agregar dependencias al decorador de operaciones path.
+from fastapi import Depends, FastAPI, Header, HTTPException
+
+app = FastAPI()
+
+
+async def verify_token(x_token: str = Header(...)):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: str = Header(...)):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+@app.get("/items/", dependencies=[Depends(verify_token), Depends(verify_key)])
+async def read_items():
+    return [{"item": "Foo"}, {"item": "Bar"}]
+# en este caso la dependencias se ejecutaran de la misma manera que una dependencia normal
+# pero su valor de pasara por la funcion de path
+
+# dependencías globales. dependencias para todas las aplicaciones
+from fastapi import Depends, FastAPI, Header, HTTPException
+
+
+async def verify_token(x_token: str = Header(...)):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: str = Header(...)):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"item": "Portal Gun"}, {"item": "Plumbus"}]
+
+
+@app.get("/users/")
+async def read_users():
+    return [{"username": "Rick"}, {"username": "Morty"}]
+# en este caso todas las dependencias se aplicán a todas las rutas paths
+# ambos paths depedende las 2 dependencias y se debe a que se invovan desde la instancia app
+
+# dependencias de rendimiento yield. dependencias que realizan alguna acción depués de finalizar. usar yield en lugar de return
+
+# crear una dependencia para DB. crear una sesion y cerarla después de terminar
+async def get_db():
+    db = DBSession()
+    try:
+        yield db
+    finally:
+        db.close()
