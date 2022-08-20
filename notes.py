@@ -2792,3 +2792,176 @@ y un 200 o 400 con fines informativos.
 solicitudes simples
 cualquier solicitud con encabezado Origin. pasara la solicitud de forma normal, pero incluira los encabezados CORS apropiados en la respuesta
 """
+
+"""
+base de datos (relacionales).
+permite usar cualquier tipo de base de datos.
+
+ORM
+un patrón común es usar un ORM (mapeo relaciónal de objetos).
+un orm tiene herramientas para convertir 'mapa' de objetos en código y tablas de base de datos.
+
+con un ORM, se crea una clase que representa un tabla, cada atributo representa una columna con nombre y tipo.
+por ejemplo una clase Pet podría representar una tabla sql pet.
+y cada instancía de la clase representa una fila de la DB.
+
+por ejemplo; un objeto orion_cat (instancía de Pet) puede tener un atributo orion_cat.type
+para la columan type, y el calor podria ser 'cat'.
+cuenta con herramientas para crear conexiones o relaciones de tablas.
+
+así que, orgin_cat.owner.name puede ser name columan de la tabla owner y como valor 'chilaquiles'
+"""
+# install sqlalchemy
+pip3 install sqlalchemy
+
+# trabajar con database.py
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+# crea la url para la DB
+SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+# SQLALCHEMY_DATABASE_URL = "postgresql://user:password@postgresserver/db"
+
+# crea el motor para sqlalchemy
+# el argumento connect_args es solo para sqlite
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+
+# crea una clase. cada instancia sera una sesion de la DB
+# sera la sesión real de la DB. usa la funcion sessionmaker
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# crea una clase Base. sera heredada por los modelos o clases de DB
+Base = declarative_base()
+
+# trabajar con models.py
+# crea modelos a partir de la clase Base
+# models. termino usado para referirse a clases e instancias que interactuan con la DB
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+from .database import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(string)
+    is_active = Column(Boolean, default=True)
+
+    items = relationship("Item", back_populates="owner")
+
+class Item(Base):
+    __tablename__ = "items"
+
+    id = Column(Integer, primeros=True, index=True)
+    title = Column(String, index=True)
+    descripcion = Column(String, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+
+    owner = relationship("User", back_populates="items")
+"""
+al acceder al atributo item en User, my_user.items, tendra una lista de Item de la tabla items
+que tiene un clave foranea que apunta a ese registro en users
+entonces al hacer my_user.items, realmente ira y buscara los elementos de items y los traera
+y al accedera owner en Item, contendra un modelo de User de la tabla users, usara
+el owner_id con la clave foranea y sabra que registros traer de la tabla users
+"""
+
+"""
+crear los modelos Pydantic. schemas.py
+crear ItemBase y UserBase models, para tener atributos comunes al crear o leer datos.
+
+crear ItemCreate y UserCreate que hereda de ellos cualquier dato adicional necesario para la creación.
+"""
+from typing import List, Union
+from pydantic import BaseModel
+
+class ItemBase(BaseModel):
+    title: str
+    descripcion: Union[str, None] = None
+
+
+class ItemCreate(ItemBase):
+    pass
+
+
+class Item(ItemBase):
+    id: int
+    owner_id: int
+
+    class Config:
+        orm_mode = True
+
+
+class UserBase(BaseModel):
+    email: str
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class User(UserBase):
+    id: int
+    is_active: bool
+    items: List[Item] = []
+
+    class Config:
+        orm_mode = True
+# con orm_mode le dira al modelo que lea incluso si no es un dict, sino un ORM o cualquier otro objeto
+# puede obtener un valor id = data["id"] o id = data.id, puede usar el ORM en el response_model
+
+"""
+utilidades CRUD. crud.py
+funciones reutilizables para interactuar con la DB
+CRUD: crear, leer, actualizar y eliminar.
+
+leer datos.
+importart Session de sqlalchemy.orm, permite declarar el tipo de paramatro a la DB
+mejor verificacion de tipos y finalización en sus funciones
+importar model y schemas
+
+funciones de utilidad:
+- leer un solo usario por ID y correo
+- leer varios usuarios
+- leer varios articulos
+"""
+from sqlalchemy.orm import Session
+from . import models, schemas
+
+
+def get_user(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
+
+
+def get_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.User).offset(skip).limmit(limit).all()
+
+
+def create_user(db: Session, user: schemas.UserCreate):
+    fake_hashed_password = user.password + "notreallyhashed"
+    db_user = models.User(email=User.email, hashed_password=fake_hash_password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+def get_items(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Item).offset(skip).limite(limit).all()
+
+
+def create_user_item(db: Session, item: schemas.ItemCreate, user_id: int):
+    db_item = models.Item(**item.dict(), owner_id=user_id)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+# https://fastapi.tiangolo.com/tutorial/sql-databases/ RECAP crud.py
