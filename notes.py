@@ -2487,4 +2487,187 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @app.get("/users/me")
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
-# https://fastapi.tiangolo.com/tutorial/security/simple-oauth2/   RECAP
+# realmente no genera un hash, lo que hace es concatenar lo que esta en la funcion fake_hash_password junto al password
+# lo compara con lo que esta en el dict y en base a la info retorna un error o da acceso al usuario.
+# disable indica que usario esta activo o inactivo, esto no le niega el acceso
+
+"""
+OAuth2 con contaseña (hashing), Bearer con toker JWT(JSON web token).
+es un estandar para codificar un objeto json en una cadena larga, densa y sin espacios.
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+no está ecriptado, cualquier podría recuperar la información. pero al estar firmado.
+con lo cual se puede crear un token con caducidad, por ejemplo una semana.
+después de una semana al caducar, el usuario tendra que autenticarse de nuevo
+"""
+# insalar python-jose[cryptography]
+pip3 install python-jose[cryptography]
+
+"""
+hashing de contraseñas.
+convertir algun contenido en una secuencia de bytes.
+cada vez que pasa exactamente el mismo contenido, obtiene lo mismo
+pero no se puede converir el datos a contraseña
+
+por qué usar hash de contraseñas.
+si alguien roba la base de datos, no tendra las contraseñas de texto, solo los hashes.
+"""
+# instalar passlib. excelente paquete para manejar hashes de contraseñas
+# adminte muchos algoritmos de hash seguros y utilidades para trabajar.
+# el algoritmo recomendado es Bcrypt
+pip3 install passlib[bcrypt]
+
+# crear un contexto passlib. para codificar y validar contraseñas
+# función de utilidad para codificar contreaseñas enviadar por el user
+# utilidad para validar la contraseña contra el hash
+# y otro para autenticar y devolver el usuario
+# crear una secretkey aleatoria para firmar los tokens
+openssl rand -hex 32
+
+from datetime import datetime, timedelta
+from typing import Union
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+
+# to get a string like this run:
+# openssl rand -hex 32
+SECRET_KEY = "5a4e9f641caf1f11769fbc423822288f26a251561786dbb9feb405261564fcfa"
+ALGORITHM = "HS256" # variable con algoritmo para firmar token jwt hs256
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 # variable de vencimiento
+
+
+fake_users_db = {
+    "johndoe": {
+        "username": "johndoe",
+        "full_name": "John Doe",
+        "email": "johndoe@example.com",
+        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
+        "disabled": False,
+    }
+}
+
+# modelo para usar el token para la respuesta
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: Union[str, None] = None
+
+
+class User(BaseModel):
+    username: str
+    email: Union[str, None] = None
+    full_name: Union[str, None] = None
+    disabled: Union[bool, None] = None
+
+
+class UserInDB(User):
+    hashed_password: str
+
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+app = FastAPI()
+
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+
+def get_user(db, username: str):
+    if username in db:
+        user_dict = db[username]
+        return UserInDB(**user_dict)
+
+
+def authenticate_user(fake_db, username: str, password: str):
+    user = get_user(fake_db, username)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+# funcion de utilidad para generar un nuevo token
+def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+# actualizar para recibir el mismo token que antes, ahora usando jwt
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = get_user(fake_users_db, username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+async def get_current_active_user(current_user: User = Depends(get_current_user)):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+# crear un timedelta con el tiempo de expiración
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/users/me/", response_model=User)
+async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    return current_user
+
+
+@app.get("/users/me/items/")
+async def read_own_items(current_user: User = Depends(get_current_active_user)):
+    return [{"item_id": "Foo", "owner": current_user.username}]
+"""
+detalles técnicos sobre jwt 'sub'.
+jwt dice que hay un sujeto 'sub' con el token.
+es opcional pero es ahí donde se coloca la indentificación del usuario.
+jwt permite hacer otras cosas ademas de identificar usarios, como realizar operaciones sobre la API.
+identificar pubicaciones de blogs.
+puede ser usada con bots
+"""
+pip3 install --upgrade pip
+# RECAP sobre oauth2 and fastapi!!!
