@@ -2709,3 +2709,86 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+"""
+CORS (cross-origin resource sharing) (intercambio de recursos de origen cruzado)
+se refiere a las situaciónes en las que una interfaz que se ejecuta en el navegador
+tiene código javascript que se comunica con un backend y el backend está en un origen diferente
+a la iterfaz.
+
+Origin. es la combinación de protocolo (http, https), dominio (myapp.com, localhost, localhost.tiangolo.com) y puerto (80, 443, 800)
+entondes, todos son origenes diferentes
+- http://localhost
+- https://localhost
+- http:/localhost:8000
+incluso estando en localhost, usan diferentes protocolos o puertos.
+
+Steps.
+entonces se tiene una interfaz en localhost:8000 y javascript tiene una en localhost
+por defecto en el puerto 80 al no especificar.
+
+luego el navegador enviara un solicitud HTTP Options y si el backend envia los encabezados apropiados
+que autoricen la comunicación, entonces permitrita la comunicación entre el fron y el back.
+
+para esto el backend debe tener una lista de origenes permitidos
+por ejemplo http://localhost:8000
+
+Wildcards
+es posible declarar la lista como '*' comodin para permitir todas.
+pero solo permite ciertas conexiónes y excluye todo lo que sea credenciales:
+cookies, headers de autorización Bearer, tokes, etc.
+por lo cual es mejor pasar una lista de origenes.
+
+usar CORSMiddleware
+- importart CORSMiddleware
+- crear una lista de origenes permitidos (como cadenas)
+- como un middleware
+
+si el backend lo permite:
+- credenciales (headers, cookies, etc)
+- metodos HTTP especificos (POST, PUT) o todos con el comodin '*'
+- encabezados especifico con el comodin '*'
+"""
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/")
+async def main():
+    return {"message": "Hello World"}
+"""
+(la mayoria espera una lista[])
+allow_origins: lista de oirigenes que permite realizar solicitudes cruzadas. (listao '*')
+allow_origin_regex: cadena de expresiones regulares para comparar los origenes que se deben permitir.
+allow_methods: lista de metodos HTTP, predetermiando GET o '*'.
+allow_headers: lista de headers HTTP, predeterminado [] o '*'(permite todos los encabezados).
+allow_credentials: indicar las cookies a permitir, predeterminado False. no permite '*', se deben especificar.
+expose_headers: indica los encabezados de respuesta que deben estar accesibles para el navegador. predeterminado []
+max_age: timepo maximo en segundo para que el navegados almacene en caché la respuesta de CORS. predeterminado a 600.
+
+el middleware responde a dos tipos de solicitudes en particualar HTTP.
+
+solicitudes de verificación previa de CORS.
+son cualquier solicitud OPTIONS con Origin y encabezados Access-Control-Rquest-Method.
+el middleware interceptara la solicitud entrante y respondera con los encabezados CORS apropiados
+y un 200 o 400 con fines informativos.
+
+solicitudes simples
+cualquier solicitud con encabezado Origin. pasara la solicitud de forma normal, pero incluira los encabezados CORS apropiados en la respuesta
+"""
