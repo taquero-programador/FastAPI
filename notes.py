@@ -2671,3 +2671,41 @@ puede ser usada con bots
 """
 pip3 install --upgrade pip
 # RECAP sobre oauth2 and fastapi!!!
+
+"""
+middleware.
+un middleware es una función que funciona con cada solicitud antes de ser procedada
+por cualquier operación de ruta. y tambien en cada respuesta antes de devolverlo.
+- toma cada solicitud que llega a la aplicación
+- luego puede hacer algo con esa solicitud o ejecutar código necesario
+- luego pasa la solicitud para que sea procesada en cualquier parte de la aplicación (mediante una ruta de path)
+- toma la respuesta generada a traves de la app mediante una operacion de ruta path
+- se puede hacer algo con esa respuesta o ejecutar código necesario
+- luego devuelve la respuesta.
+nota: en dependencias con yield, el código de salida se ejecuta después del middleware.
+
+"""
+
+"""
+crear un software. usar el decorador @app.middleware("http").
+la función middleware recibe:
+- los request
+- una función call_next que recibira el request como parametro.
+esta función pasara el requests correspondiente a la operación de ruta
+luego devuelve el response generada por la operación.
+- puede modificar aún más el response antes de devolverlo
+"""
+import time
+from fastapi import FastAPI, Request
+
+app = FastAPI()
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
+
