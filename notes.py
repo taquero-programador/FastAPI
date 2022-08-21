@@ -3048,3 +3048,4 @@ SQLALCHEMY, agrega un nueco atributo, etc. replica los cambios en la DB añadien
 """
 # ejecutar
 uvicorn sql_app.main:app --reload
+# https://fastapi.tiangolo.com/tutorial/sql-databases/ RECAP
