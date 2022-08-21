@@ -2932,19 +2932,19 @@ funciones de utilidad:
 from sqlalchemy.orm import Session
 from . import models, schemas
 
-
+# obtiene el id del usuario
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
-
+# obtiene el email de usuario
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
 
-
+# obtiene todos los usuarios
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limmit(limit).all()
 
-
+# crear los usuario usando UserCreate de schemas. utilidad
 def create_user(db: Session, user: schemas.UserCreate):
     fake_hashed_password = user.password + "notreallyhashed"
     db_user = models.User(email=User.email, hashed_password=fake_hash_password)
@@ -2953,15 +2953,98 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
-
+# obtiene todos los items
 def get_items(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Item).offset(skip).limite(limit).all()
 
-
+# crea los items usanndo ItemCreate de schemas. función de utilidad
 def create_user_item(db: Session, item: schemas.ItemCreate, user_id: int):
     db_item = models.Item(**item.dict(), owner_id=user_id)
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
     return db_item
-# https://fastapi.tiangolo.com/tutorial/sql-databases/ RECAP crud.py
+"""
+pasos dentro de las funciones de utilidad.
+- modelos SQLALCHEMY con sus datos
+- add objeto de instancia a la sesion de DB
+- commit realiza los cambios en a DB
+- refresh actualiza su instancia
+"""
+
+# main.py.
+from typing import List
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchem.orm import Session
+from . import cru, models, schemas
+from .database import SessionLocal, engine
+
+# crear las tablas para la DB
+model.Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+# dependencias
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# la respuesa es igual a lo que se ingresa
+# db_user obtiene el email
+# si ya existe retorna una excepción
+# de lo contrario crea el usuario
+@app.post("/users/", response_model=schemas.User)
+def create_user(user: schemas.UserCreate, db: Session, = Depends(get_db)):
+    db_user = crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email ya registrado!")
+    return crud.crear_user(db=db, user=user)
+
+
+# la respuesta sera una lisa de todos los users obtenidos
+# la función dentro de la dependencia no nesecita (), es un invocable
+# users es igual a los resultado de la consulta de get_users
+@app.get("/users/", response_model=List[schemas.User])
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    users = crud.get_users(db, skip=skip, limit=limit)
+    return users
+
+
+# retorna solo un usuario
+# espera un user_id
+# si es usario no esta en la DB retorna una excepción
+# si no, retorna el usario perteneciente de ese id
+@app.get("/users/{user_id}", response_model=schemas.User)
+def read_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = crud.get_user(db, user_id=user_id)
+    if db_user id None:
+        raise HTTPException(status_code=400, detail="User not found!")
+    return db_user
+
+
+# espera un user_id del cual se quiera crear un item
+# manda llamar a ItemCreate para usar el model
+# crear un item para el usuario y al mismo tiempo crear la relación
+@app.post("/users/{user_id}/items/", response_model=schemas.Item)
+def create_item_for_user(
+    user_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db)
+):
+    return crud.create_user_item(db=db, item=item, user_id=user_id)
+
+
+# retorna una lista de todos los items
+@app.get("/items/", response_model=List[schemas.Item])
+def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    items = crud.get_items(db, skip=skip, limit=limit)
+    return items
+"""
+Alembic
+una migración es el conjunto de pasos necesarios cada vez que cambia la estructura de los modelos
+SQLALCHEMY, agrega un nueco atributo, etc. replica los cambios en la DB añadiendo la nueva columan, tabla, etc.
+"""
+# ejecutar
+uvicorn sql_app.main:app --reload
