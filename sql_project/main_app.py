@@ -21,7 +21,7 @@ def iter_data(*args, **kwargs):
 def get_url(id_user=None):
     if id_user:
         return iter_data(**requests.get(url+str(id_user)).json())
-    return iter_data(**requests.get(url).json())
+    return iter_data(*requests.get(url).json())
 
 
 def get_user():
@@ -32,7 +32,7 @@ def get_user():
 
 def get_users():
     os.system("clear")
-    return iter_data(*requests.get(url).json())
+    return get_url()
 
 
 def create_user():
