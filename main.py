@@ -1,27 +1,18 @@
 #!/usr/bin/env python3
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import BackgroundTasks, FastAPI
 
 app = FastAPI()
 
-origins = [
-    "http://localhost.tiangolo.com",
-    "https://localhost.tiangolo.com",
-    "http://localhost",
-    "http://localhost:8080",
-]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def write_notification(email: str, message=""):
+    with open("log.txt", mode="w") as email_file:
+        content = f"notification for {email}: {message}"
+        email_file.write(content)
 
 
-@app.get("/")
-async def main():
-    return {"message": "Hello World"}
+@app.post("/send-notification/{email}")
+async def send_notification(email: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(write_notification, email, message="some notification")
+    return {"message": "Notification sent in the background"}
 

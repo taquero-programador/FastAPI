@@ -3165,3 +3165,28 @@ router = APIRouter()
 async def update_admin():
     return {"message": "Admin getting schwifty"}
 
+
+# tareas en segundo plano
+"""
+definir tareas en segundo plano que se ejecuten despues de devolver una respuesta
+por ejemplo:
+- notificar por correo después de una acción
+- procesando datos
+"""
+# usando BackgroundTasks
+from fastapi import BackgroundTasks, FastAPI
+
+app = FastAPI()
+
+
+def write_notification(email: str, message=""):
+    with open("log.txt", mode="w") as email_file:
+        content = f"notification for {email}: {message}"
+        email_file.write(content)
+
+
+@app.post("/send-notification/{email}")
+async def send_notification(email: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(write_notification, email, message="some notification")
+    return {"message": "Notification sent in the background"}
+
