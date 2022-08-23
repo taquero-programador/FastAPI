@@ -3324,3 +3324,5 @@ def test_create_existing_item():
     assert response.status_code == 400
     assert response.json() == {"detail": "Item already exists"}
 
+
+# debugging https://fastapi.tiangolo.com/tutorial/debugging/
