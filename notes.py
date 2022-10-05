@@ -3326,3 +3326,16 @@ def test_create_existing_item():
 
 
 # debugging https://fastapi.tiangolo.com/tutorial/debugging/
+# para el proceso de nginx con supervisord.
+# install
+sudo apt install nginx supervisor -y
+# creados los archivos de configuración
+sudo systemclt restart nginx
+sudo supervisorctl reload
+# puede marcar error porque otro proceso esta corriendo con el mismo puerto
+sudo supervisord -c /etc/supervisor/conf.d/fastapi.conf
+# detener
+pgrep "supervisor" -a
+sudo kill num_pid
+# debe correr bien
+sudo supervisord -c /etc/supervisor/conf.d/fastapi.conf
