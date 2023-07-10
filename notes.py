@@ -33,6 +33,13 @@ app = FastAPI()
 async def read_item(item_id):
     return {"item_id": item_id}
 
+# consulta con requests y algo de json
+r = requests.get('http://localhost:8000/items/string_id')
+r.text # es una cadena
+r.json() # es un dict
+a = json.loads(r.text) # str -> dict
+b = json.dumps(r.json()) # dict -> str
+
 # en localhost:8000/items/cosa rebe retornar un dict
 # definir el tipo de valor a recibir usando anotaciones de tipo
 
@@ -90,6 +97,10 @@ async def get_model(model_name):
 
     return {"model_name": model_name, "mensaje": "Debian BTW..."}
 
+lista = ["alexnet", "resnet", "lenet"]
+for name in lista:
+    print(requests.get(f'http://localhost:8000/model/{name}').text) # or .json()
+
 """
 parametros de ruta que contienen rutas
 supongamos que se tiene una endpoint /files/{file_path}
@@ -123,6 +134,20 @@ fake_items = [{"item_name": "Foo"},
 @app.get("/items")
 async def read_item(skip: int = 0, limit: int = 10):
     return fake_items[skip : skip + limit]
+
+# requests
+def get(**kwargs):
+    '''
+    function get:
+    skip: int
+    limit: int
+    get(skip=int, limit=int)
+    '''
+    _url 'http://localhost:8000/items'
+    url = requests.get(url, params=kwargs).url
+    text = requests.get(url, params=kwargs).text
+    return url, text
+get(skip=0, limit=3)
 # esto vendria a ser un conjunto de pares clave:valor que van depués de ?
 # ejemlo
 localhost:/items/?skip=0&limit=10
@@ -136,11 +161,16 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-@app.get("/ite,s/{item_id}")
+@app.get("/items/{item_id}")
 async def read_item(item_id: str, q: Union[str, None] = None):
     if q:
         return {"item_id": item_id, "q": q}
     return {"item_id": item_id}
+
+# requests
+r = requests.get('http://localhost:8000/items/prueba', params={'q': 'value'})
+r.url
+r.text
 # donde q sera opcional y por defecto sera None
 # para pasar dos valores es /items/item_name?q=valor_de_q
 # uno solo seria /items/item_name
@@ -161,6 +191,15 @@ async def get_item(item_id: str, q: Union[str, Union] = None, short: bool = Fals
                 {"descripcion": "desc"}
             )
     return item
+
+# requests
+def get(item_id, **kwargs):
+    _url = f'http://localhost:8000/items{item_id}'
+    url = requests.get(url, params=kwargs).url
+    text = requests.get(url, params=kwargs).url
+    return url, text
+get('one', q='valor de q')
+get('one', q='valor de q', short=True)
 # la url completa seria http://localhost:8000/items/uno?q=dos&short=false
 
 # multiples rutas y parametros de consulta. no se declaran en orden especifico
@@ -178,6 +217,14 @@ async = def read_user_item(
     if not short:
         item.update({"description": "desc"})
     return item
+
+# requests
+def get(user_id, item_id, **kwargs):
+    _url = f'http://localhost:8000/users/{user_id}/items/{item_id}'
+    url = requests.get(url, params=kwargs).url
+    text = requests.get(url, params=kwargs).url
+    return url, text
+get('one', 'uno', q='value for q', short=True)
 # http://localhost:8000/users/javier/items/coca?q=get&short=false
 
 # parametros de consulta requeridos
@@ -192,6 +239,11 @@ async def read_user_id(item_id: str, needy: str = None):
     if needy:
         item.update({"needy": needy})
     return item
+
+# requests
+requests.get('http://localhost:8000/test', params={'needy': 'value of needy'})
+r.url
+r.text
 # valores predeterminados y opcionales
 
 """
@@ -212,9 +264,23 @@ class Item(BaseModel):
 
 app = FastAPI()
 
-@app.post("/items/")
+@app.post("/items")
 async def create_item(item: Item):
     return item
+
+# requests
+payload = {
+    'name': 'bender',
+    'desc': 'this is a test.',
+    'price': 100.15,
+    'tax': 0.16
+}
+url = 'http://localhost:8000/items'
+r = requests.post(url, json=pyayload)
+# or
+r = requests.post(url, data=json.dumps(payload))
+r.url
+r.text
 
 # generar una solicitud con requests
 import requests
@@ -249,8 +315,13 @@ async def create_item(item: Item):
     item_dict = item.dict()
     if item.tax:
         price_wtax = item.price * item.tax
-        ite_dict.update({"net": price_wtax})
+        item_dict.update({"net": price_wtax})
     return item_dict
+
+# requests
+def post(*kwargs):
+    return requests.post('http://localhost:8000/items', json=kwargs)
+post(name='bender', desc='test', price=1212, tax=12)
 
 # solicitar cuerpo + parametro de ruta al mismo tiempo
 # parametros de ruta deben obtenerse de la ruta y los parametros de funcion que son modelos pydantic
@@ -267,9 +338,12 @@ class Item(BaseModel):
 
 app = FastAPI()
 
-@app.put("/items/{item_id}")
+@app.put("/items/{item_id}"
 async def create_item(item_id: int, item: Item):
     return {"item_id": item_id, **item_dict()}
+
+# requests
+r = requests.put('http://localhost:8000/items/1000', json=payload)
 # es PUT. el id se envia sobre la url/300 y los valores se envian sobre el body requests de put
 # **item.dic() retorna los valores de body requests + el item_id en un solo dict
 # para poder manipular los datos debo de hacer un casting de str a dict
