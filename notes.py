@@ -24,7 +24,7 @@ asycn def root():
 # localhost:/8000/redoc herramienta opensource para generar documentación
 # puede devolver un dict o list con str e int, inlcuido una gran variedad de moelos que se convertirar a JSON
 
-# paramatros de ruta. se pueden declarar como parametros o variables que luego se pasaran como tipos str
+# paramatros de ruta. se pueden declarar como parámetros o variables que luego se pasaran como tipos str
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -73,7 +73,7 @@ async def read_user(user_id):
 
 """
 valores predefinidos
-operaciones que reciben un parametro de ruta pero se desea que los parametros
+operaciones que reciben un parámetro de ruta pero se desea que los parámetros
 de ruta estren predefinidos
 """
 # crear una enumeracion con Enum. al pasar str la api sabra que son string
@@ -102,14 +102,14 @@ for name in lista:
     print(requests.get(f'http://localhost:8000/model/{name}').text) # or .json()
 
 """
-parametros de ruta que contienen rutas
+parámetros de ruta que contienen rutas
 supongamos que se tiene una endpoint /files/{file_path}
 pero se necesita una ruta paht como /home/user/file.csv.
 
 entonces el endpoint deberia ser algo como /files/home/user/file.csv
 
 usar una opcion de starlette /files/{file_paht:path}
-dode file_path es el parametro y :path  le dice que debe conicidir con cualquier ruta
+dode file_path es el parámetro y :path  le dice que debe conicidir con cualquier ruta
 """
 from fastapi import FastAPI
 
@@ -121,8 +121,8 @@ async def read_files(file_path: str):
 # al copiar la ruta puede junto a la url puede tener doble //, en amos casos funciona
 # y retorna un string de la ruta del archivo
 
-# parametros de consulta. cuando se declaran parametros que no son parte de la ruta
-# se interpretan como parametros de consulta
+# parámetros de consulta. cuando se declaran parámetros que no son parte de la ruta
+# se interpretan como parámetros de consulta
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -154,7 +154,7 @@ localhost:/items/?skip=0&limit=10
 # skip con un valor de 0 y limit con 10
 
 # https://fastapi.tiangolo.com/tutorial/body-multiple-params/#singular-values-in-body
-# parametros opcionales. declarar parametros de consulta opcional, configurando su valor como None
+# parámetros opcionales. declarar parámetros de consulta opcional, configurando su valor como None
 from typing import Union
 # Union permite asignar varios tipos de valor a un elemento
 from fastapi import FastAPI
@@ -175,7 +175,7 @@ r.text
 # para pasar dos valores es /items/item_name?q=valor_de_q
 # uno solo seria /items/item_name
 
-# conversion de tipo de parametro en consulta. declarra bool
+# conversion de tipo de parámetro en consulta. declarra bool
 from typing import Union
 from fastapi import FastAPI
 
@@ -202,7 +202,7 @@ get('one', q='valor de q')
 get('one', q='valor de q', short=True)
 # la url completa seria http://localhost:8000/items/uno?q=dos&short=false
 
-# multiples rutas y parametros de consulta. no se declaran en orden especifico
+# multiples rutas y parámetros de consulta. no se declaran en orden especifico
 from typing import Union
 from fastapi import FastAPI
 
@@ -222,12 +222,12 @@ async = def read_user_item(
 def get(user_id, item_id, **kwargs):
     _url = f'http://localhost:8000/users/{user_id}/items/{item_id}'
     url = requests.get(url, params=kwargs).url
-    text = requests.get(url, params=kwargs).url
+    text = requests.get(url, params=kwargs).text
     return url, text
 get('one', 'uno', q='value for q', short=True)
 # http://localhost:8000/users/javier/items/coca?q=get&short=false
 
-# parametros de consulta requeridos
+# parámetros de consulta requeridos
 # pasar None si no sea desea establecer un valor predeterminado
 from fastapi import FastAPI
 
@@ -276,7 +276,7 @@ payload = {
     'tax': 0.16
 }
 url = 'http://localhost:8000/items'
-r = requests.post(url, json=pyayload)
+r = requests.post(url, json=payload)
 # or
 r = requests.post(url, data=json.dumps(payload))
 r.url
@@ -323,8 +323,8 @@ def post(*kwargs):
     return requests.post('http://localhost:8000/items', json=kwargs)
 post(name='bender', desc='test', price=1212, tax=12)
 
-# solicitar cuerpo + parametro de ruta al mismo tiempo
-# parametros de ruta deben obtenerse de la ruta y los parametros de funcion que son modelos pydantic
+# solicitar cuerpo + parámetro de ruta al mismo tiempo
+# parámetros de ruta deben obtenerse de la ruta y los parámetros de funcion que son modelos pydantic
 # se obtiene del cuerpo de la solicitud
 from typing import Union
 from fastapi import FastAPI
@@ -339,18 +339,24 @@ class Item(BaseModel):
 app = FastAPI()
 
 @app.put("/items/{item_id}"
-async def create_item(item_id: int, item: Item):
-    return {"item_id": item_id, **item_dict()}
+async def create_item(item_id: int, item. Item):
+    return {"item_id": item_id, **item.dict()}
 
 # requests
 r = requests.put('http://localhost:8000/items/1000', json=payload)
-# es PUT. el id se envia sobre la url/300 y los valores se envian sobre el body requests de put
+r.txt
+
+# en PUT. el id se envia sobre la url/300 y los valores se envian sobre el body requests de put
 # **item.dic() retorna los valores de body requests + el item_id en un solo dict
 # para poder manipular los datos debo de hacer un casting de str a dict
+
 import json
 r_dict = r.json() # de string lo pasa a un dict json
 
-# body requests + ruta + parametro de consulta. todo al mismo tiempo
+# body requests + ruta + parámetro de consulta. todo al mismo tiempo
+# body request: json=payload
+# ruta: url/item_id
+# parámetro de consulta: q=value or params=params
 from typing import Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -370,9 +376,15 @@ async def create_item(
     if q:
         result.update({"q": q})
     return result
+
+# requests
+ r = requests.put('http://localhost:8000/items?q=value', json=payload)
+# or
+r = requests.get('http://localhost:8000/items', params=params, json=payload)
+r.text
 # id y q se envian en la url http://localhost:8000/items/100?q=qq y lo demas sobre el body requests
 
-# parametros de consulta y validacion. FastAPI permite info adicional y validacion para sus parametros
+# parámetros de consulta y validacion. FastAPI permite info adicional y validacion para sus parámetros
 from typing import Union
 from fastapi import FastAPI
 
@@ -383,6 +395,14 @@ async def read_items(q: Union[str, None] = None):
     if q:
         result.update({"q": q})
     return result
+
+# requests
+r = requests.get('http://url:8000/items')
+# or
+r = requests.get('http://url:8000/items', params={'q': 'value'})
+r.url
+r.text
+
 # validación adicional. validar q evitando exceder 50 caracteres
 # en este caso Query se pasa como un valor por defecto, permitiendo ser None y validar en caso de pasar un valor
 from typing import Union
@@ -405,9 +425,11 @@ payload = {"q": "qweess"}
 headers = {"Content-Type": "application/json"}
 r = requests.get(url, params, headers=headers)
 print(r.url) # con json retorna la url con caracteres extraños
+r.text
 # sin json retorna una url normal
 # al pasar un valor que exceda max_length retorna un error
-# añadir más vaidaciones
+
+# añadir más validaciones
 from typing import Union
 from fastapi import FastAPI, Query
 
@@ -420,7 +442,13 @@ async def rea_items(
     if q:
         result.update({"q": q})
     return result
-# añadir condicones adicionles con regex
+
+# requests
+r = requests.get('http://url:8000/items', params={"q": 'awe'})
+r.url
+r.text
+
+# añadir condiciones adicionles con regex
 from typing import Union
 from fastapi import FastAPI, Query
 
@@ -435,8 +463,13 @@ async def read_items(q: Union[str, None] = Query(
         result.update({"q": q})
     return result
 # la palabra debe ser fixed ^ indica como inicia y $ como termina
-# valores predeterminados. dentro de Query se puede definir un valor predeterminado ademas de None
-# esto puede reemplazar Union pero ya no permite mas de un tipo de dato
+# requests
+r = requests.get('http://url:8000/items', params={'q': 'bender'})
+r.url
+t.text
+
+# valores predeterminados. dentro de Query se puede definir un valor predeterminado.
+# esto puede reemplazar Union, pero ya no permite más de un tipo de dato
 from fastapi import FastAPI, Query
 
 app = FastAPI()
@@ -447,7 +480,12 @@ async def read_items(q: str = Query(default="fixedquery", min_length=3)):
     if q:
         result.update({"q": q})
     return result
-# hacerlo obligatorio. usar de fault=...
+
+# requests
+r = requests.get('http://url:8000/items', params={"q": "bender"})
+# si no se pasa el parámetro de consulta, retorna el valor por defecto
+
+# hacerlo obligatorio. usar de default=...
 # requerido con None. usando Union
 from typing import Union
 from fastapi import FastAPI, Query
@@ -461,7 +499,10 @@ async def read_items(
     if q:
         result.update({"q": q})
     return result
-# usar pydantic Required en ligar de ...
+# requests
+# el requests es similar, pero ahora q es obligatorio
+
+# usar pydantic Required en lugar de ...
 from fastapi import FastAPI
 from pydantic import Required
 
@@ -473,22 +514,34 @@ async def read_items(q: str = Query(default=Required, min_length=3)):
     if q:
         result.update({"q": q})
     return result
-# lista de parametros de consulta/valores multiples. recibir una lista de valores
+
+# requests
+r = requests.get('http:/url:8000/items', params={"q": "value"}) # es Required
+r.url
+r.text
+
+# lista de parámetros de consulta/valores multiples. recibir una lista de valores
 from typing import List, Union
 from fastapi import FastAPI, Query
 
 app = FastAPI()
 
 @app.get("/items")
-async def read_items(q: Union[List[str]= None] = Query(default=None)):
+async def read_items(q: Union[List[str], None] = Query(default=None)):
     result = {"q": q}
     return result
+
+# requests
+lista = ["alexnet", "lenet", "resnet"]
+r = requests.get('http://url:8000/items?q=uno&q=dos&q=tres')
+# or
+r = requests.get('http://url:8000/items', params={"q": lista})
 # con la url se pasa http://localhost:8000/items?q=www&q=xxxx o puede ir vacio
 # sin Query y usando List no permite ni uno ni varios. returna un dict con clave y una lista con varios valores
 
 # pasar una lista como valores predeterminados
 from typing import List
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
 app = FastAPI()
 
@@ -496,7 +549,13 @@ app = FastAPI()
 async def read_items(q: List[str] = Query(default=["foo", "bar"])):
     result = {"q": q}
     return result
-# tambien se puede usar directamente list pero no se validaran los datos
+
+# requests
+r = requests.get('http://url:8000/items') # retorna la lista predeterminada si no se pasa nada
+r = requests.get('http://url:8000/items', params={"q": ["korn", "nirvana"]})
+r.url
+r.text
+# también se puede usar directamente list pero no se validaran los datos
 
 # declarar más metadatos. title, description (son para los docs)
 from typing import Union
@@ -512,7 +571,9 @@ async def read_items(
     if q:
         result.update({"q": q})
     return result
-# alias. asignar un alias al parametro. ?item-query=value
+
+
+# alias. asignar un alias al parámetro. ?item-query=value
 from typing import Union
 from fastapi import FastAPI, Query
 
@@ -525,13 +586,18 @@ async def read_items(
     if q:
         result.update("q": q)
     return result
+
+# requests
+r = requests.get('http://url:8000/items', params={"item-query": "value"})
+r.url
+r.text
 # la solicitud seria ?item-query=valor
 
-# parametros obsoletos.
-# cuando un parametro ya no se usa se tiene que matener para que en la documentación el cliente lo vea
+# parámetros obsoletos.
+# cuando un parámetro ya no se usa se tiene que matener para que en la documentación el cliente lo vea
 # donde q en seria en Query(deprecated=True). definir dentro y al final de Query()
 
-# excluir de OpenAPI. para excluir un parametro usar include_in_schema=False
+# excluir de OpenAPI. para excluir un parámetro usar include_in_schema=False
 from typing import Union
 from fastapi import FastAPI, Query
 
@@ -546,7 +612,7 @@ async def read_item(
         return {"haquery": "not found!"}
 # se puede enviar mediante la url pero en docs no va a mostrar el body
 
-# parametros de ruta y validación de ruta
+# parámetros de ruta y validación de ruta
 # Path permite los mismo tipos de validación y metadatos que Query
 from typing import Union
 from fastapi import FastAPI, Path, Query
@@ -563,7 +629,7 @@ async def read_items(
     return results
 # falla en Path requiere un argumento. al parecer requiere default=
 
-# ordenar los parametros a gusto propio. por defecto python devolveria error en esto a=100, b
+# ordenar los parámetros a gusto propio. por defecto python devolveria error en esto a=100, b
 # ya que no puede ir primero un argumento predefinido y después un no definido. usar * al inicio de todos los params
 from fastapi import FastAPI, Path
 
@@ -662,7 +728,7 @@ r = requests.put(url, data=payload, headers=headers)
 print(r.url)
 print(r.text)
 
-# declarar varios parametros de cuerpo
+# declarar varios parámetros de cuerpo
 from typing import Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -710,7 +776,7 @@ rr = r.json()
 print(rr)
 # fastapi hara la conversion para asignar cada valor item y user
 
-# valores singulares en el cuerpo. al igual que Query y Path en body se pueden añadir parametros adicionales
+# valores singulares en el cuerpo. al igual que Query y Path en body se pueden añadir parámetros adicionales
 # añadir importance como si fuera un body requests. se envia en body y no sobre la url
 from typing import Union
 from fastapi import Body, FastAPI
@@ -749,7 +815,7 @@ async def update_item(item_id: int, item: Item, user: User, importance: int = Bo
     "importance": 5
 }
 
-# incrustrar un solo parametro en el body.
+# incrustrar un solo parámetro en el body.
 from fastapi import Body, FastAPI
 from pydantic import BaseModel
 
@@ -769,7 +835,7 @@ async def update_item(item_id: int, item: Item = Body(embed=True)):
     return results
 # en este caso a pesar de ser solo un body lo espera como un dict {item: {k:v }} en lugar de {k:v}
 
-# body - campos. declarar parametros y validacion en modelos Pydantic con Field
+# body - campos. declarar parámetros y validacion en modelos Pydantic con Field
 from typing import Union
 from fastapi import Body, FastAPI
 from pydantic import BaseModel, Field
@@ -859,7 +925,7 @@ async def update_item(item_id: int, item: Item):
     results = {"item_id": item_id, "item": item}
     return results
 
-# modelos anidados. similar a la herencia, utiliza el objeto de una clase para ser usada en otra y cambiar los parametros
+# modelos anidados. similar a la herencia, utiliza el objeto de una clase para ser usada en otra y cambiar los parámetros
 from typing import Set, Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -1251,7 +1317,7 @@ async def read_items(
     }
 # el uuid se envia en la url y lo demas en un body. RECAP
 
-# parametros de cookies.
+# parámetros de cookies.
 from typing import Union
 from fastapi import Cookie, FastAPI
 
@@ -1262,7 +1328,7 @@ app = FastAPI()
 async def read_items(ads_id: Union[str, None] = Cookie(default=None)):
     return {"ads_id": ads_id}
 
-# parametros de headers.
+# parámetros de headers.
 from typing import Union
 from fastapi import FastAPI, Header
 
@@ -1378,7 +1444,7 @@ se recibe un modelo en UserIn, mientras que UserOut tomas los mismo valores pero
 el lugar de devolver todo response_model se encarga de envier el modelo modificado en lugar del original
 """
 
-# parametros de codificacion del modelo de respuesta. usar response_model_exclude_unset=True
+# parámetros de codificacion del modelo de respuesta. usar response_model_exclude_unset=True
 from typing import List, Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -1544,7 +1610,7 @@ async def create_user(user_in: UserIn):
 # primero llamada al decorador, luego a hashes y por ultimo a DB
 
 # reducir la duplicación. utilizas UserInDB como modelo base y crear varias sub clases
-# response_model permite usar Union para pasar varios parametros que funciona como un or
+# response_model permite usar Union para pasar varios parámetros que funciona como un or
 from typing import Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -2002,7 +2068,7 @@ async def create_item(item: Item):
     return item
 # permite markdown y sera visible en docs
 
-# descripcion de respuesta con el parametro response_description
+# descripcion de respuesta con el parámetro response_description
 from typing import Set, Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -2188,12 +2254,12 @@ async def read_users(commons: dict = Depends(common_parameters)):
     return commons
 # common_parameters espera un argumento q str, un skip opcional o 0 u limit opcional o 100, al final devuelve un dict
 # url http://localhost:8000/items/?q=test&skip=0&limit=100
-# depends recibe un solo parametro el cual deberia ser una funcion, en este caso common_parameters.
+# depends recibe un solo parámetro el cual deberia ser una funcion, en este caso common_parameters.
 """
 cada vez que llega una nueva solicitud
-- llama a la funcion de dependencia confiable de parametros confiables
+- llama a la funcion de dependencia confiable de parámetros confiables
 - obtiene el resultado de la función
-- asigna el resultado de la funcion al parametro de path (get)
+- asigna el resultado de la funcion al parámetro de path (get)
 
 async y no async.
 se puede decalara funciones path async o normales def.
@@ -2210,7 +2276,7 @@ otros terminos
 - componentes
 
 la intregacion y dependencias se puede contruir usando la inyección de dependencias.
-esto permite añadir más funcionalidades a los parametros de ruta
+esto permite añadir más funcionalidades a los parámetros de ruta
 """
 
 # clases como dependencias. cambiar una funcion por una clase
@@ -2238,7 +2304,7 @@ async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
     items = fake_items_db[commons.skip : commons.skip + commons.limit]
     response.update({"items": items})
     return response
-# se envia en la url, si no recibe el parametro q, retorna los valores predeterminados. retorna clave: valor
+# se envia en la url, si no recibe el parámetro q, retorna los valores predeterminados. retorna clave: valor
 # retorna una lista de dict
 # se usa dos veces el CommonQueryParams pero el último es el que usa para saber la dependencía que usara
 # usar solo una ves el nombre de la dependencia en lugar de dos
@@ -2380,7 +2446,7 @@ FastAPI se base en OpenAPI
 
 OpenAPi define los siguientes esquemas de seguridad.
 -- apikey: una clave especifica de la app que puede provenir de:
-- un parametro de consulta
+- un parámetro de consulta
 - un encabezado
 - cookies
 -- http: sistema de autenticación HTTP estandar:
@@ -2764,7 +2830,7 @@ nota: en dependencias con yield, el código de salida se ejecuta después del mi
 crear un software. usar el decorador @app.middleware("http").
 la función middleware recibe:
 - los request
-- una función call_next que recibira el request como parametro.
+- una función call_next que recibira el request como parámetro.
 esta función pasara el requests correspondiente a la operación de ruta
 luego devuelve el response generada por la operación.
 - puede modificar aún más el response antes de devolverlo
@@ -3164,7 +3230,7 @@ app/routers/items.py endpoint para manejar 'elementos'
 tiene operaciones de ruta para
 - /items/
 - /items/{item_id}
-en la instancia router si colocan los parametros que seran usados por todos les metodos de ruta
+en la instancia router si colocan los parámetros que seran usados por todos les metodos de ruta
 """
 from fastapi import APIRouter, Depends, HTTPException
 from ..dependencies import get_token_header
